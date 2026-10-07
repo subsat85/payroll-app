@@ -1,0 +1,11 @@
+{
+  "name": "payroll-app-tests",
+  "private": true,
+  "description": "Browser test suites for the payroll/attendance PWA (calculations, safety, RTL, mobile, animation, security, schema).",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

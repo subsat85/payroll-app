@@ -50,6 +50,19 @@ header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 8
 #hdrAct{display:flex;gap:2px}
 main{max-width:860px;margin:0 auto;padding:12px 16px calc(env(safe-area-inset-bottom) + 92px)}
 
+/* ===== Persistent alerts (critical errors stay until dismissed or resolved) ===== */
+#alerts{position:sticky;top:var(--hdr-h,52px);z-index:19;max-width:860px;margin:0 auto;padding:8px 16px 0}
+#alerts:empty{display:none}
+.alert{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid var(--bad);border-radius:var(--r);padding:10px 8px 10px 12px;margin-bottom:8px;box-shadow:0 6px 18px rgba(0,0,0,.12)}
+.alert.warn{border-inline-start-color:var(--warn)}
+.alert>.ico{color:var(--bad);margin-top:2px}
+.alert.warn>.ico{color:var(--warn)}
+.alert .body{flex:1;min-width:0}
+.alert .body b{display:block}
+.alert .body p{margin:2px 0 0;font-size:var(--fs-xs);color:var(--ink-2);line-height:1.6}
+.alert .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.alert [data-alert-close] .ico{transform:rotate(45deg)}
+
 /* ===== Bottom tabs ===== */
 #tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
 #tabs button{position:relative;flex:1;max-width:140px;border:0;background:none;color:var(--muted);font:inherit;font-size:11px;font-weight:600;padding:7px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;min-height:54px}
@@ -283,6 +296,7 @@ dialog.closing{pointer-events:none}
   <div class="hdr-t"><h1 id="hdrTitle">الرواتب والدوام</h1><small id="hdrSub"></small></div>
   <div id="hdrAct"></div>
 </header>
+<div id="alerts" role="alert" aria-live="assertive"></div>
 <main id="view"></main>
 <nav id="tabs">
   <button data-tab="home"><svg class="ico"><use href="#i-home"/></svg>الرئيسية</button>
@@ -304,7 +318,41 @@ const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","
 const WEEKDAYS = ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 const END_REASONS = ["استقالة","فصل","انتهاء عقد","وفاة","أخرى"];
 const LEAVE_TYPES = ["سنوية","مرضية","بدون راتب","طارئة","أخرى"];
+/* ========== إصدار تنسيق البيانات ==========
+   CURRENT_SCHEMA هو إصدار التنسيق الذي يكتبه هذا التطبيق. البيانات القديمة بلا رقم إصدار = الإصدار 1 (نفس التنسيق).
+   لإضافة ترقية مستقبلاً: ارفع CURRENT_SCHEMA وأضف MIGRATIONS[n] = d => (بيانات الإصدار n+1). لا تعدّل خطوة قديمة أبداً.
+   تُؤخذ نسخة خام من البيانات قبل تشغيل أي ترقية، والبيانات من إصدار أحدث تُفتح للقراءة فقط ولا تُكتب. */
+const CURRENT_SCHEMA = 1;
+const MIGRATIONS = {};
+// target/steps are parameters only so the migration runner can be tested with hypothetical future steps
+function migrate(d, target = CURRENT_SCHEMA, steps = MIGRATIONS){
+  const from = d.schemaVersion == null ? 1 : Number(d.schemaVersion);
+  if(!Number.isInteger(from) || from < 1) return {error:"invalid"};
+  if(from > target) return {error:"newer", from};
+  let out = d;
+  for(let v = from; v < target; v++){
+    if(typeof steps[v] !== "function") return {error:"missing-step", from};
+    out = steps[v](structuredClone(out)); out.schemaVersion = v + 1;
+  }
+  return {data: out, from};
+}
+
+/* ========== تنبيهات دائمة للأخطاء الحرجة ========== */
+const alerts = new Map();              // key -> {level, title, text, actions:[{label, act}]}
+let readOnly = null;                   // "corrupt" | "newer" | null — عند ضبطه يُمنع أي حفظ يكتب فوق البيانات
+function showAlert(key, a){ alerts.set(key, a); if(typeof renderAlerts === "function" && document.readyState !== "loading") renderAlerts(); }
+function clearAlert(key){ if(alerts.delete(key) && typeof renderAlerts === "function") renderAlerts(); }
+const ALERT = {
+  saveFailed: () => ({level:"error", title:"لم تُحفظ آخر التغييرات على الجهاز", text:"ذاكرة الجهاز ممتلئة أو غير متاحة. البيانات ما زالت مفتوحة أمامك — احفظ نسخة احتياطية الآن حتى لا تضيع.", actions:[{label:"حفظ ملف نسخة", act:"backup"},{label:"نسخ البيانات", act:"copy-data"}]}),
+  storageFull: () => ({level:"warn", title:"ذاكرة الجهاز ممتلئة", text:"حُذفت اللقطات التلقائية لإفساح المجال وحُفظت بياناتك. احفظ نسخة احتياطية الآن.", actions:[{label:"حفظ ملف نسخة", act:"backup"}]}),
+  corrupt: () => ({level:"error", title:"تعذّرت قراءة البيانات المحفوظة", text:"لم يُحذف شيء: حُفظت نسخة من البيانات كما هي، والحفظ متوقف حتى تقرّر. نزّلها وأرسلها للدعم، أو استعد نسخة احتياطية.", actions:[{label:"تنزيل البيانات كما هي", act:"download-raw"},{label:"استعادة نسخة", act:"paste-data"},{label:"البدء من جديد", act:"discard-corrupt"}]}),
+  newer: v => ({level:"error", title:"البيانات من إصدار أحدث من التطبيق", text:`حُفظت هذه البيانات بإصدار تنسيق ${Number(v) || "?"}، وهذا التطبيق يدعم حتى ${CURRENT_SCHEMA}. فُتحت للقراءة فقط حتى لا تتلف — حدّث التطبيق (أغلقه وافتحه مرتين).`, actions:[]}),
+  noStorage: () => ({level:"error", title:"لا يمكن الحفظ في هذا المتصفح", text:"الذاكرة المحلية غير متاحة (ربما وضع التصفح الخاص). أي بيانات تُدخلها ستضيع عند الإغلاق.", actions:[]}),
+  restoreFailed: reason => ({level:"error", title:"فشلت الاستعادة — لم تتغيّر بياناتك", text:esc(reason), actions:[]}),
+};
+
 const DEFAULTS = {
+  schemaVersion: CURRENT_SCHEMA,
   settings:{ currency:"د.أ", company:"", monthDays:30, otMultiplier:1.25, attReq:"09:00", weekend:5, ssPct:0, annualLeave:14, defIn:"", defOut:"", autoAtt:true },
   employees:[], payroll:{}, advances:[], overtime:[], attendance:{}, leaves:[]
 };
@@ -317,18 +365,34 @@ const normalize = d => {
 };
 let db = load();
 function load(){
-  try{ const d = JSON.parse(localStorage.getItem(KEY) || "null"); if(d) return normalize(d); }catch(e){}
-  return structuredClone(DEFAULTS);
+  let raw;
+  try{ raw = localStorage.getItem(KEY); }catch(e){ alerts.set("no-storage", ALERT.noStorage()); return structuredClone(DEFAULTS); }
+  if(raw == null) return structuredClone(DEFAULTS);
+  let d = null;
+  try{ d = JSON.parse(raw); }catch(e){}
+  if(!d || typeof d !== "object" || Array.isArray(d)){
+    // بيانات تالفة: لا نكتب فوقها أبداً. نحتفظ بنسخة خام ونوقف الحفظ.
+    try{ localStorage.setItem(KEY + "-unreadable", raw); }catch(e){}
+    readOnly = "corrupt"; alerts.set("corrupt", ALERT.corrupt());
+    return structuredClone(DEFAULTS);
+  }
+  const m = migrate(d);
+  if(m.error === "newer"){ readOnly = "newer"; alerts.set("newer", ALERT.newer(m.from)); return normalize(d); }
+  if(m.error){ try{ localStorage.setItem(KEY + "-unreadable", raw); }catch(e){} readOnly = "corrupt"; alerts.set("corrupt", ALERT.corrupt()); return structuredClone(DEFAULTS); }
+  if(m.from < CURRENT_SCHEMA){ try{ localStorage.setItem(`${KEY}-before-v${CURRENT_SCHEMA}`, raw); }catch(e){} }
+  return normalize(m.data);
 }
 // كل حفظ يزيد عدّاد التغييرات منذ آخر نسخة احتياطية، ويأخذ لقطة يومية تلقائية
 function save(silent){
+  if(readOnly){ showAlert(readOnly, readOnly === "newer" ? ALERT.newer(db.schemaVersion) : ALERT.corrupt()); return false; }
   if(!silent) db.changes = (db.changes || 0) + 1;
+  db.schemaVersion = CURRENT_SCHEMA;
   const json = JSON.stringify(db);
-  try{ localStorage.setItem(KEY, json); }
+  try{ localStorage.setItem(KEY, json); clearAlert("save-failed"); }
   catch(e){
     // الذاكرة ممتلئة: نضحّي باللقطات التلقائية لأن البيانات الأساسية أهم
-    try{ localStorage.removeItem(SNAP_KEY); localStorage.setItem(KEY, json); toast("⚠️ الذاكرة ممتلئة — حُذفت اللقطات التلقائية. احفظ نسخة احتياطية الآن"); }
-    catch(e2){ toast("⚠️ تعذّر الحفظ على الجهاز — احفظ نسخة احتياطية فوراً"); }
+    try{ localStorage.removeItem(SNAP_KEY); localStorage.setItem(KEY, json); clearAlert("save-failed"); showAlert("storage-full", ALERT.storageFull()); }
+    catch(e2){ showAlert("save-failed", ALERT.saveFailed()); }
   }
   dailySnapshot(); updateDot();
 }
@@ -336,6 +400,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 
 /* ========== أدوات ========== */
 const $ = s => document.querySelector(s);
+// كل قيمة يتحكم بها المستخدم أو ملف نسخة احتياطية تمرّ عبر esc قبل دخولها إلى HTML (نصاً أو داخل سمة)
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 // يقبل الأرقام العربية (٠-٩) والفاصلة العشرية العربية
 // يقبل الأرقام العربية، والفاصلة العشرية العربية (٫)، وفاصل الآلاف (1,290 أو ١٬٢٩٠)
@@ -388,7 +453,7 @@ const empName = id => empById(id)?.name || "—";
 const isActive = (e, dateStr = today()) => { const t = parseDate(e.endDate), h = parseDate(e.hire), d = parseDate(dateStr); return (h==null || h<=d) && (t==null || t>=d); };
 function empOptions(sel, onlyActive){
   return db.employees.filter(e => !onlyActive || !e.endDate || e.id === sel)
-    .map(e => `<option value="${e.id}" ${e.id===sel?"selected":""}>${esc(e.name)}</option>`).join("");
+    .map(e => `<option value="${esc(e.id)}" ${e.id===sel?"selected":""}>${esc(e.name)}</option>`).join("");
 }
 const state = { tab:"home", y:now().getFullYear(), m:now().getMonth()+1, attEmp:null, profile:null, q:"" };
 try{ Object.assign(state, JSON.parse(sessionStorage.getItem("payroll-ui")||"{}")); }catch(e){}
@@ -401,7 +466,7 @@ const onLeaveOn = (empId, ds) => db.leaves.find(l => l.empId===empId && l.from<=
 /* ========== حماية البيانات: لقطات تلقائية على الجهاز ========== */
 const readSnaps = () => { try{ return JSON.parse(localStorage.getItem(SNAP_KEY) || "[]"); }catch(e){ return []; } };
 function takeSnap(reason){
-  if(!db.employees.length) return;
+  if(readOnly || !db.employees.length) return;
   const list = readSnaps(); list.unshift({at:new Date().toISOString(), day:today(), reason, n:db.employees.length, data:JSON.stringify(db)});
   // نحتفظ بآخر 8 لقطات؛ إذا امتلأت الذاكرة نحذف الأقدم ونحاول مجدداً
   for(let keep = 8; keep > 0; keep--){ try{ localStorage.setItem(SNAP_KEY, JSON.stringify(list.slice(0,keep))); return; }catch(e){} }
@@ -537,10 +602,10 @@ views.home = () => {
     let st, btn = "";
     if(onLeaveOn(e.id, today())) st = `<span class="tag warn">في إجازة</span>`;
     else if(r.holiday) st = `<span class="tag warn">عطلة</span>`;
-    else if(r.in && r.out) { present++; st = `انصرف ${nb(r.out)} · ${hm(calcDay(sh, r).actual)} ساعة`; btn = `<button class="btn sm" data-day-edit="${e.id}|${day}">${ic("pencil","sm")} تعديل</button>`; }
-    else if(r.in) { present++; st = `حاضر منذ ${nb(r.in)}`; btn = `<button class="btn sm primary" data-punch="out|${e.id}">${ic("out","sm")} انصراف</button>`; }
-    else { st = "لم يسجّل حضوراً"; btn = `<button class="btn sm good" data-punch="in|${e.id}">${ic("in","sm")} حضور</button>`; }
-    return `<div class="row" data-row="${e.id}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
+    else if(r.in && r.out) { present++; st = `انصرف ${nb(esc(r.out))} · ${hm(calcDay(sh, r).actual)} ساعة`; btn = `<button class="btn sm" data-day-edit="${esc(e.id)}|${day}">${ic("pencil","sm")} تعديل</button>`; }
+    else if(r.in) { present++; st = `حاضر منذ ${nb(esc(r.in))}`; btn = `<button class="btn sm primary" data-punch="out|${esc(e.id)}">${ic("out","sm")} انصراف</button>`; }
+    else { st = "لم يسجّل حضوراً"; btn = `<button class="btn sm good" data-punch="in|${esc(e.id)}">${ic("in","sm")} حضور</button>`; }
+    return `<div class="row" data-row="${esc(e.id)}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
   }).join("");
   const ds = daysSinceBackup();
   let banner = "";
@@ -573,13 +638,13 @@ views.attendance = () => {
     const lv = onLeaveOn(emp.id, `${ym(y,m)}-${pad(d)}`);
     let st = "", mid, end = "";
     if(c){ st = c.over ? "st-over" : c.short ? "st-short" : "st-ok";
-      mid = `${nb(r.in)} – ${nb(r.out)} <span class="muted">· ${hm(c.actual)}</span>`;
+      mid = `${nb(esc(r.in))} – ${nb(esc(r.out))} <span class="muted">· ${hm(c.actual)}</span>`;
       end = c.over ? `<span class="pos">+${hm(c.over)}</span>` : c.short ? `<span class="neg">−${hm(c.short)}</span>` : `<span class="muted">${ic("check","sm")}</span>`; }
-    else if(r.in || r.out){ st = "st-part"; mid = `${nb(r.in||"--:--")} – ${nb(r.out||"--:--")}`; end = `<span class="muted">ناقص</span>`; }
+    else if(r.in || r.out){ st = "st-part"; mid = `${nb(esc(r.in||"--:--"))} – ${nb(esc(r.out||"--:--"))}`; end = `<span class="muted">ناقص</span>`; }
     else if(lv){ st = "st-hol"; mid = `<span class="muted">إجازة ${esc(lv.type)}</span>`; }
     else if(r.holiday){ st = "st-hol"; mid = `<span class="muted">عطلة</span>`; }
     else mid = `<span class="muted">—</span>`;
-    rows += `<button class="day row-btn ${st} ${!c && !r.in && !r.out ? "empty-day" : ""} ${wd==db.settings.weekend?"weekend":""} ${isCurMonth()&&d===now().getDate()?"today":""}" data-day-edit="${emp.id}|${d}" aria-label="يوم ${d}">
+    rows += `<button class="day row-btn ${st} ${!c && !r.in && !r.out ? "empty-day" : ""} ${wd==db.settings.weekend?"weekend":""} ${isCurMonth()&&d===now().getDate()?"today":""}" data-day-edit="${esc(emp.id)}|${d}" aria-label="يوم ${d}">
       <span class="d"><b>${d}</b><small>${WEEKDAYS[wd]}</small></span><span class="t">${mid}</span><span class="r">${end}</span></button>`;
   }
   return `
@@ -598,7 +663,7 @@ views.attendance = () => {
 function payCard(e, p){
   const MD = num(db.settings.monthDays)||30;
   const line = (t,v,cls="neg") => Math.abs(v) > 0.004 ? `<dt>${t}</dt><dd class="${cls}">${money(v)}</dd>` : "";
-  return `<div class="pcard ${p.delivered?"done":""}" data-card="${e.id}">
+  return `<div class="pcard ${p.delivered?"done":""}" data-card="${esc(e.id)}">
     <div class="head">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.title?" · ":""}${p.days<MD?`${p.days} يوم استحقاق`:"شهر كامل"}</small></div>
       ${p.delivered?`<span class="tag good">سُلِّم</span>`:""}</div>
     <dl>
@@ -611,10 +676,10 @@ function payCard(e, p){
     </dl>
     <div class="net"><span>الصافي</span><span class="${p.net<0?"neg":""}">${money(p.net)}</span></div>
     <div class="foot">
-      <button class="btn sm" data-pay-edit="${e.id}">${ic("pencil","sm")} تعديل</button>
-      <button class="btn sm" data-slip="${e.id}">${ic("receipt","sm")} القسيمة</button>
+      <button class="btn sm" data-pay-edit="${esc(e.id)}">${ic("pencil","sm")} تعديل</button>
+      <button class="btn sm" data-slip="${esc(e.id)}">${ic("receipt","sm")} القسيمة</button>
       <span class="grow"></span>
-      <label class="check" style="font-size:13px"><input type="checkbox" data-deliver="${e.id}" ${p.delivered?"checked":""}> ${p.delivered?esc(p.deliveredDate):"تم التسليم"}</label>
+      <label class="check" style="font-size:13px"><input type="checkbox" data-deliver="${esc(e.id)}" ${p.delivered?"checked":""}> ${p.delivered?esc(p.deliveredDate):"تم التسليم"}</label>
     </div></div>`;
 }
 views.payroll = () => {
@@ -631,7 +696,7 @@ views.payroll = () => {
 const empRows = () => {
   const q = state.q.trim();
   const list = db.employees.filter(e => !q || (e.name+" "+(e.title||"")+" "+(e.phone||"")).includes(q));
-  return list.map(e => `<button class="row row-btn" data-profile="${e.id}">${avatar(e.name)}
+  return list.map(e => `<button class="row row-btn" data-profile="${esc(e.id)}">${avatar(e.name)}
     <div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"—")}</small></div>
     <span class="end">${money(num(e.salary))}${e.endDate?`<br><span class="tag bad">${esc(e.endReason||"منتهية")}</span>`:""}</span></button>`).join("") || `<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
 };
@@ -661,15 +726,15 @@ views.profile = () => {
   </dl></div>
   <div class="strip" style="margin-bottom:12px">${kv(`رصيد الإجازة ${y}`, `${nb(leaveBalance(e,y))} يوم`, leaveBalance(e,y)<0?"neg":"")}${kv(`صافي ${y}`, money(s.net))}${kv(`سلف ${y}`, money(s.adv))}${kv(`إضافي ومكافآت`, money(s.otPay+s.bonus), sign(s.otPay+s.bonus))}</div>
   <div class="tile-row">
-    <button class="tile" data-act="att-of:${e.id}">${ic("clock")}الدوام</button>
-    <button class="tile" data-slip="${e.id}">${ic("receipt")}القسيمة</button>
-    <button class="tile" data-act="add-leaves:${e.id}">${ic("leave")}إجازة</button>
-    <button class="tile" data-act="add-advances:${e.id}">${ic("cash")}سلفة</button>
+    <button class="tile" data-act="att-of:${esc(e.id)}">${ic("clock")}الدوام</button>
+    <button class="tile" data-slip="${esc(e.id)}">${ic("receipt")}القسيمة</button>
+    <button class="tile" data-act="add-leaves:${esc(e.id)}">${ic("leave")}إجازة</button>
+    <button class="tile" data-act="add-advances:${esc(e.id)}">${ic("cash")}سلفة</button>
   </div>
   <div class="section-t"><h2>آخر الإجازات</h2></div>
-  <div class="group">${lv.length?lv.map(l=>`<button class="row row-btn" data-edit="leaves:${l.id}"><div class="info"><b>${esc(l.type)}</b><small>${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}</small></div><span class="end">${leaveDays(e.id,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></button>`).join(""):`<div class="empty">لا يوجد</div>`}</div>
+  <div class="group">${lv.length?lv.map(l=>`<button class="row row-btn" data-edit="leaves:${esc(l.id)}"><div class="info"><b>${esc(l.type)}</b><small>${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}</small></div><span class="end">${leaveDays(e.id,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></button>`).join(""):`<div class="empty">لا يوجد</div>`}</div>
   <div class="section-t"><h2>آخر السلف</h2></div>
-  <div class="group">${adv.length?adv.map(a=>`<button class="row row-btn" data-edit="advances:${a.id}"><div class="info"><b>${nb(esc(a.date))}</b><small>${esc(a.note||"")}</small></div><span class="end">${money(num(a.amount))}</span></button>`).join(""):`<div class="empty">لا يوجد</div>`}</div>`;
+  <div class="group">${adv.length?adv.map(a=>`<button class="row row-btn" data-edit="advances:${esc(a.id)}"><div class="info"><b>${nb(esc(a.date))}</b><small>${esc(a.note||"")}</small></div><span class="end">${money(num(a.amount))}</span></button>`).join(""):`<div class="empty">لا يوجد</div>`}</div>`;
 };
 
 views.more = () => {
@@ -687,7 +752,7 @@ function recordList(kind){
   const total = rows.filter(r=>!ignored(r)).reduce((s,r)=>s+num(isAdv?r.amount:r.hours),0);
   return `<div class="ctx">${monthPicker()}<span class="grow"></span><button class="btn primary" data-act="add-${kind}">${ic("plus","sm")} ${isAdv?"سلفة":"ساعات"}</button></div>
   <div class="hero"><div class="label">${isAdv?"إجمالي السلف":"إجمالي الساعات اليدوية"} · ${MONTHS[state.m-1]}</div><div class="value">${isAdv?money(total):nb(fix(total))}</div><div class="sub">${rows.length} سجل</div></div>
-  ${rows.length ? `<div class="group">${rows.map(r=>`<button class="row row-btn" data-edit="${kind}:${r.id}">${avatar(empName(r.empId))}
+  ${rows.length ? `<div class="group">${rows.map(r=>`<button class="row row-btn" data-edit="${kind}:${esc(r.id)}">${avatar(empName(r.empId))}
     <div class="info"><b>${esc(empName(r.empId))}</b><small>${nb(esc(r.date))}${r.note?" · "+esc(r.note):""}</small></div>
     <span class="end">${isAdv?money(num(r.amount)):nb(fix(num(r.hours)))+" س"}${ignored(r)?`<br><span class="tag">مستبدل بالدوام</span>`:""}</span></button>`).join("")}</div>`
     : emptyState(isAdv?"cash":"timeplus", "لا توجد سجلات في هذا الشهر.")}
@@ -706,7 +771,7 @@ views.leaves = () => {
   ${db.employees.filter(e=>isActive(e, `${y}-12-31`) || isActive(e, `${y}-01-01`)).map(e=>`<tr><td>${esc(e.name)}</td><td>${leaveDays(e.id,ys,ye,"سنوية")}</td><td><b class="${leaveBalance(e,y)<0?"neg":""}">${nb(leaveBalance(e,y))}</b></td><td>${leaveDays(e.id,ys,ye,"مرضية")}</td><td>${leaveDays(e.id,ys,ye,"بدون راتب")}</td></tr>`).join("")}
   </tbody></table></div><p class="note">الإجازة «بدون راتب» تُخصم تلقائياً من راتب الشهر.</p>
   <div class="section-t"><h2>إجازات ${y}</h2></div>
-  ${rows.length ? `<div class="group">${rows.map(l=>`<button class="row row-btn" data-edit="leaves:${l.id}">${avatar(empName(l.empId))}
+  ${rows.length ? `<div class="group">${rows.map(l=>`<button class="row row-btn" data-edit="leaves:${esc(l.id)}">${avatar(empName(l.empId))}
     <div class="info"><b>${esc(empName(l.empId))}</b><small>${esc(l.type)} · ${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}${l.note?" · "+esc(l.note):""}</small></div>
     <span class="end"><span class="tag ${l.type==="بدون راتب"?"bad":""}">${leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></span></button>`).join("")}</div>` : emptyState("leave", `لا توجد إجازات في ${y}.`)}`;
 };
@@ -750,7 +815,7 @@ views.settings = () => {
     <button class="row row-btn" data-act="export-all">${ic("file")}<div class="info"><b>تصدير كل البيانات إلى Excel</b><small>للأرشفة أو المحاسب</small></div>${ic("left","sm")}</button>
   </div>
   <div class="section-t"><h2>لقطات تلقائية على هذا الجهاز</h2><small>آخر ${snaps.length}</small></div>
-  <div class="group">${snaps.length ? snaps.map((s,i)=>`<button class="row row-btn" data-snap="${i}">${ic("history")}<div class="info"><b>${nb(new Date(s.at).toLocaleString("en-GB",{dateStyle:"short",timeStyle:"short"}))}</b><small>${esc(s.reason)} · ${s.n} موظف</small></div><span class="btn sm">استرجاع</span></button>`).join("") : `<div class="empty">تُؤخذ لقطة يومياً، وقبل أي استعادة أو حذف.</div>`}</div>
+  <div class="group">${snaps.length ? snaps.map((s,i)=>`<button class="row row-btn" data-snap="${i}">${ic("history")}<div class="info"><b>${nb(new Date(s.at).toLocaleString("en-GB",{dateStyle:"short",timeStyle:"short"}))}</b><small>${esc(s.reason)} · ${esc(s.n)} موظف</small></div><span class="btn sm">استرجاع</span></button>`).join("") : `<div class="empty">تُؤخذ لقطة يومياً، وقبل أي استعادة أو حذف.</div>`}</div>
   <p class="note">اللقطات تحميك من الأخطاء (حذف أو استعادة خاطئة)، لكنها على نفس الجهاز — لا تغني عن ملف النسخة الاحتياطية.</p>
 
   <div class="section-t"><h2>عام</h2></div>
@@ -795,7 +860,7 @@ function tfSync(tf){
   if(inp.value !== v){ inp.value = v; inp.dispatchEvent(new Event("change",{bubbles:true})); }
 }
 function tfSet(root, name, v){
-  const tf = root.querySelector(`[data-tf="${name}"]`); if(!tf) return;
+  const tf = root.querySelector(`[data-tf="${CSS.escape(name)}"]`); if(!tf) return;
   const [h,m] = (v||"").split(":"); tf.querySelector(".tf-h").value = h||""; tf.querySelector(".tf-m").value = m||""; tfSync(tf);
 }
 document.addEventListener("change", e => { if(e.target.matches?.(".tf select")) tfSync(e.target.closest(".tf")); }, true);
@@ -1001,8 +1066,8 @@ function editDay(empId, d){
   const wd = new Date(Date.UTC(y,m-1,d)).getUTCDay(), fresh = !r.in && !r.out;
   const prev = (() => { for(let i=d-1;i>=1;i--){ const p = sheet.days?.[i]; if(p?.in && p?.out) return p; } return null; })();
   const S = db.settings;
-  const chips = [prev ? `<button type="button" class="chip" data-fill="${prev.in}|${prev.out}">مثل آخر يوم ${nb(prev.in)}–${nb(prev.out)}</button>` : "",
-    S.defIn && S.defOut && !(prev && prev.in===S.defIn && prev.out===S.defOut) ? `<button type="button" class="chip" data-fill="${S.defIn}|${S.defOut}">المعتاد ${nb(S.defIn)}–${nb(S.defOut)}</button>` : ""].join("");
+  const chips = [prev ? `<button type="button" class="chip" data-fill="${esc(prev.in)}|${esc(prev.out)}">مثل آخر يوم ${nb(esc(prev.in))}–${nb(esc(prev.out))}</button>` : "",
+    S.defIn && S.defOut && !(prev && prev.in===S.defIn && prev.out===S.defOut) ? `<button type="button" class="chip" data-fill="${esc(S.defIn)}|${esc(S.defOut)}">المعتاد ${nb(esc(S.defIn))}–${nb(esc(S.defOut))}</button>` : ""].join("");
   const f = openDialog(`<h3>${esc(emp.name)} · ${WEEKDAYS[wd]} ${d} ${MONTHS[m-1]}</h3>
     ${chips ? `<div class="chips">${chips}</div>` : ""}
     <div class="fields">${timeField("الحضور","in", r.in || (fresh ? S.defIn : ""))}${timeField("الانصراف","out", r.out || (fresh ? S.defOut : ""))}</div>
@@ -1031,15 +1096,15 @@ function attSettings(){
   const {y,m} = state, emp = empById(state.attEmp), sheet = attSheet(emp.id,y,m);
   openDialog(`<h3>دوام ${esc(emp.name)} · ${MONTHS[m-1]}</h3>
     <div class="fields">${timeField("الساعات المطلوبة يومياً","req",sheet.req || db.settings.attReq,{now:false})}
-      <label>سعر الساعة الإضافية<input inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${fix(otRateFor(emp)).toFixed(2)} تلقائي"></label></div>
+      <label>سعر الساعة الإضافية<input inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${esc(fix(otRateFor(emp)).toFixed(2))} تلقائي"></label></div>
     <label class="check" style="margin-top:8px"><input type="checkbox" name="autoPay" ${sheet.manual?"":"checked"} ${db.settings.autoAtt===false?"disabled":""}> احتساب هذا الشهر في الرواتب تلقائياً</label>
-    <p class="note">اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ ${db.settings.monthDays} ÷ ساعات العمل × ${db.settings.otMultiplier}.${db.settings.autoAtt===false?" الاحتساب التلقائي متوقف من الإعدادات العامة.":""}</p>`,
+    <p class="note">اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ ${esc(db.settings.monthDays)} ÷ ساعات العمل × ${esc(db.settings.otMultiplier)}.${db.settings.autoAtt===false?" الاحتساب التلقائي متوقف من الإعدادات العامة.":""}</p>`,
   d => { const sh = attSheet(emp.id,y,m,true); sh.req = d.req; sh.rate = d.rate; if(db.settings.autoAtt!==false) sh.manual = !d.autoPay; save(); render(); toast("تم الحفظ"); });
 }
 
 function pickEmployee(){
   const d = $("#dlg");
-  const list = q => db.employees.filter(e => !q || e.name.includes(q)).map(e => `<button class="row row-btn" data-pick="${e.id}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.endDate?" · منتهية":""}</small></div>${e.id===state.attEmp?ic("check","sm"):""}</button>`).join("") || `<div class="empty">لا نتائج</div>`;
+  const list = q => db.employees.filter(e => !q || e.name.includes(q)).map(e => `<button class="row row-btn" data-pick="${esc(e.id)}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.endDate?" · منتهية":""}</small></div>${e.id===state.attEmp?ic("check","sm"):""}</button>`).join("") || `<div class="empty">لا نتائج</div>`;
   d.innerHTML = `<div class="sheet-grab"></div><div class="sheet-body"><h3>اختر الموظف</h3>${db.employees.length>6?`<input type="search" placeholder="بحث" id="pickQ" style="margin:0 0 10px">`:""}</div><div class="group" style="margin:0 16px 16px" id="pickList">${list("")}</div>`;
   d.showModal();
   $("#pickQ")?.addEventListener("input", e => { $("#pickList").innerHTML = list(e.target.value.trim()); });
@@ -1079,7 +1144,7 @@ function slipHTML(e, y, m){
   const L = (t,v) => `<dt>${t}</dt><dd>${money(v)}</dd>`;
   const ded = [p.absDed?L(`غياب (${fix(p.absDays)} يوم)`,p.absDed):"", p.unpaidDed?L(`إجازة بدون راتب (${p.unpaidDays} يوم)`,p.unpaidDed):"",
     p.lateDed?L(`تأخير (${fix(p.lateHours)} س)`,p.lateDed):"", p.adv?L("سلف",p.adv):"", p.otherDed?L("خصومات أخرى",p.otherDed):"",
-    p.ss?L(`الضمان الاجتماعي ${S.ssPct}%`,p.ss):"", p.otPay<0?L(`نقص ساعات (${hmText(-p.otHours*60)} س)`,-p.otPay):""].join("");
+    p.ss?L(`الضمان الاجتماعي ${esc(S.ssPct)}%`,p.ss):"", p.otPay<0?L(`نقص ساعات (${hmText(-p.otHours*60)} س)`,-p.otPay):""].join("");
   return `<div class="slip">
     <h2>قسيمة راتب</h2><div class="subt">${esc(S.company||"")}${S.company?" · ":""}${MONTHS[m-1]} ${y}</div>
     <dl><dt>الموظف</dt><dd>${esc(e.name)}</dd><dt>المسمى</dt><dd>${esc(e.title||"—")}</dd><dt>أيام الاستحقاق</dt><dd>${p.days}</dd></dl>
@@ -1116,7 +1181,9 @@ function showSlip(empId){
 /* ========== النسخ الاحتياطي والنقل ========== */
 const exportPayload = () => JSON.stringify({app:"payroll-app", v:2, exportedAt:new Date().toISOString(), data:db});
 function markBackedUp(){ db.lastBackup = today(); db.changes = 0; save(true); }
+function blockedExport(){ if(readOnly === "corrupt"){ showAlert("corrupt", ALERT.corrupt()); toast("استخدم «تنزيل البيانات كما هي» من التنبيه"); return true; } return false; }
 async function backup(){
+  if(blockedExport()) return;
   const text = exportPayload(), name = `payroll-backup-${today()}.json`;
   try{
     const file = new File([text], name, {type:"application/json"});
@@ -1125,22 +1192,43 @@ async function backup(){
   download(name, text); markBackedUp(); render(); toast("تم تنزيل ملف النسخة");
 }
 async function copyData(){
+  if(blockedExport()) return;
   const text = exportPayload();
   try{ await navigator.clipboard.writeText(text); markBackedUp(); render(); toast("تم نسخ كل البيانات — الصقها في التطبيق الآخر"); }
   catch(err){ pasteDialog(text); }
 }
+// المعرّفات تُنشأ بـ uid() دائماً؛ أي معرّف خارج هذا النمط يعني ملفاً تالفاً أو معدّلاً فيُرفض كاملاً
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+function countBadIds(d){
+  let bad = 0; const chk = v => { if(typeof v !== "string" || !SAFE_ID.test(v)) bad++; };
+  (Array.isArray(d.employees) ? d.employees : []).forEach(e => chk(e?.id));
+  for(const k of ["advances","overtime","leaves"]) (Array.isArray(d[k]) ? d[k] : []).forEach(r => { chk(r?.id); chk(r?.empId); });
+  Object.keys(d.attendance && typeof d.attendance === "object" ? d.attendance : {}).forEach(k => chk(k.split("|")[0]));
+  Object.values(d.payroll && typeof d.payroll === "object" ? d.payroll : {}).forEach(mo => Object.keys(mo && typeof mo === "object" ? mo : {}).forEach(chk));
+  return bad;
+}
 function parseBackup(txt){
-  let d; try{ d = JSON.parse(String(txt).trim()); }catch(err){ return null; }
+  let d; try{ d = JSON.parse(String(txt).trim()); }catch(err){ return {error:"النص ليس نسخة احتياطية صالحة — تأكد أنك نسخت كل النص أو اخترت الملف الصحيح."}; }
   if(d && d.app === "payroll-app" && d.data) d = d.data;
-  return d && Array.isArray(d.employees) ? d : null;
+  if(!d || typeof d !== "object" || !Array.isArray(d.employees)) return {error:"هذه ليست بيانات تطبيق الرواتب."};
+  const bad = countBadIds(d);
+  if(bad) return {error:`الملف يحتوي ${bad} معرّفاً غير صالح، وقد يكون تالفاً أو معدّلاً، فلم يُستورد.`};
+  const m = migrate(d);
+  if(m.error === "newer") return {error:`النسخة من إصدار أحدث من التطبيق (تنسيق ${m.from}). حدّث التطبيق أولاً.`};
+  if(m.error) return {error:"إصدار تنسيق البيانات في الملف غير معروف."};
+  return {data: m.data};
 }
 async function restoreFrom(txt){
-  const d = parseBackup(txt);
-  if(!d){ toast("البيانات غير صالحة — تأكد أنك نسخت كل النص أو اخترت الملف الصحيح"); return false; }
+  if(readOnly === "newer"){ showAlert("restore-failed", ALERT.restoreFailed("البيانات الحالية من إصدار أحدث؛ حدّث التطبيق قبل الاستعادة حتى لا تُستبدل.")); return false; }
+  const parsed = parseBackup(txt);
+  if(parsed.error){ showAlert("restore-failed", ALERT.restoreFailed(parsed.error)); return false; }
+  const d = parsed.data;
   const ok = await ask(`<b>البيانات الجديدة:</b> ${summarize(d)}${db.employees.length ? `<br><b>ستُستبدل الحالية:</b> ${summarize(db)}<br>تُحفظ لقطة من البيانات الحالية قبل الاستبدال.` : ""}`, {title:"استعادة البيانات", ok:"استعادة"});
   if(!ok) return false;
   takeSnap("قبل الاستعادة");
-  db = normalize(d); db.changes = 0; db.lastBackup = db.lastBackup || today(); save(true); render(); toast("تمت الاستعادة ✓"); return true;
+  readOnly = null; clearAlert("corrupt");
+  db = normalize(d); db.changes = 0; db.lastBackup = db.lastBackup || today(); save(true);
+  clearAlert("restore-failed"); render(); toast("تمت الاستعادة ✓"); return true;
 }
 function pasteDialog(prefill){
   const f = openDialog(prefill
@@ -1184,6 +1272,26 @@ async function exportXlsx(kind){
   XLSX.writeFile(wb, file);
 }
 
+/* ========== عرض التنبيهات الدائمة ========== */
+function renderAlerts(){
+  const box = $("#alerts"); if(!box) return;
+  box.innerHTML = [...alerts].map(([key, a]) => `<div class="alert ${a.level === "warn" ? "warn" : ""}" data-alert="${esc(key)}">${ic("alert")}
+    <div class="body"><b>${esc(a.title)}</b><p>${a.text}</p>${a.actions.length ? `<div class="btns">${a.actions.map(x => `<button class="btn sm ${x.act==="discard-corrupt"?"danger":"primary"}" data-alert-act="${esc(x.act)}">${esc(x.label)}</button>`).join("")}</div>` : ""}</div>
+    <button class="icon-btn" data-alert-close="${esc(key)}" aria-label="إغلاق التنبيه">${ic("plus","sm")}</button></div>`).join("");
+  document.documentElement.style.setProperty("--hdr-h", $("header").offsetHeight + "px");
+}
+$("#alerts").addEventListener("click", async e => {
+  const close = e.target.closest("[data-alert-close]"); if(close){ alerts.delete(close.dataset.alertClose); return renderAlerts(); }
+  const b = e.target.closest("[data-alert-act]"); if(!b) return;
+  const act = b.dataset.alertAct;
+  if(act === "download-raw"){ let raw = ""; try{ raw = localStorage.getItem(KEY + "-unreadable") || localStorage.getItem(KEY) || ""; }catch(err){} return download(`payroll-unreadable-${today()}.json`, raw); }
+  if(act === "discard-corrupt"){
+    if(!await ask("سيبدأ التطبيق ببيانات فارغة. النسخة غير المقروءة تبقى محفوظة جانباً ويمكن تنزيلها لاحقاً.", {title:"البدء من جديد", ok:"ابدأ من جديد", danger:true})) return;
+    readOnly = null; clearAlert("corrupt"); db = structuredClone(DEFAULTS); save(true); return render();
+  }
+  return handleAct(act);
+});
+
 /* ========== التنقل والأحداث ========== */
 const TAB_OF = {advances:"more", overtime:"more", leaves:"more", summary:"more", settings:"more", profile:"employees"};
 function render(){
@@ -1214,12 +1322,12 @@ document.addEventListener("change", e => {
     const r = ((db.payroll[ym(state.y,state.m)] ||= {})[ds.deliver] ||= {});
     r.delivered = t.checked; r.deliveredDate = t.checked ? today() : "";
     save(); render();
-    const card = $(`[data-card="${ds.deliver}"]`);
+    const card = $(`[data-card="${CSS.escape(ds.deliver)}"]`);
     if(t.checked){ flash(card, "var(--good)"); pop(card?.querySelector("[data-deliver]"), [{transform:"scale(.6)"},{transform:"scale(1.1)", offset:.6},{transform:"scale(1)"}]); pop(card?.querySelector(".head .tag"), [{opacity:0, transform:"scale(.9)"},{opacity:1, transform:"scale(1)"}]); }
     return toast(t.checked ? `تم تسليم راتب ${empName(ds.deliver)}` : "أُلغي التسليم", true);
   }
   if(ds.set){ db.settings[ds.set] = t.type==="checkbox" ? t.checked : ds.num!=null ? num(t.value) : t.value; save(); if(t.type==="checkbox") render(); return toast("تم الحفظ"); }
-  if(ds.actFile === "restore" && t.files[0]){ t.files[0].text().then(txt => { restoreFrom(txt); t.value = ""; }); }
+  if(ds.actFile === "restore" && t.files[0]){ t.files[0].text().then(txt => restoreFrom(txt), () => showAlert("restore-failed", ALERT.restoreFailed("تعذّرت قراءة الملف من الجهاز."))).finally(() => { t.value = ""; }); }
 });
 
 async function handleAct(act, arg){
@@ -1305,7 +1413,7 @@ document.addEventListener("click", async e => {
     const sh = attSheet(id,d.getFullYear(),d.getMonth()+1,true); sh.days ||= {};
     (sh.days[d.getDate()] ||= {})[kind] = nowHM();
     save(); render();
-    const row = $(`[data-row="${id}"]`); flash(row, kind==="in" ? "var(--good)" : "var(--brand)"); pop(row?.querySelector(".btn")); pop(row?.querySelector(".info small"), [{opacity:0},{opacity:1}]);
+    const row = $(`[data-row="${CSS.escape(id)}"]`); flash(row, kind==="in" ? "var(--good)" : "var(--brand)"); pop(row?.querySelector(".btn")); pop(row?.querySelector(".info small"), [{opacity:0},{opacity:1}]);
     return toast(kind==="in" ? `حضور ${empName(id)} ${nowHM()}` : `انصراف ${empName(id)} ${nowHM()}`, true);
   }
   if(ds.payEdit) return editPay(ds.payEdit);
@@ -1324,6 +1432,7 @@ document.addEventListener("click", async e => {
 });
 
 render();
+renderAlerts();
 dailySnapshot();
 try{ navigator.storage?.persist?.(); }catch(e){}
 if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
