@@ -48,7 +48,7 @@ header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 8
 .hdr-t h1{margin:0;font-size:var(--fs-md);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hdr-t small{display:block;color:var(--muted);font-size:var(--fs-xs);line-height:1.2}
 #hdrAct{display:flex;gap:2px}
-main{max-width:860px;margin:0 auto;padding:12px 16px calc(env(safe-area-inset-bottom) + 92px)}
+main{max-width:860px;margin:0 auto;padding:12px 16px calc(env(safe-area-inset-bottom) + 92px);overflow-x:clip} /* clip: the 12px month slide must never cause sideways scrolling */
 
 /* ===== Persistent alerts (critical errors stay until dismissed or resolved) ===== */
 #alerts{position:sticky;top:var(--hdr-h,52px);z-index:19;max-width:860px;margin:0 auto;padding:8px 16px 0}
@@ -170,6 +170,9 @@ input[type=checkbox]:checked{background:var(--brand-fill) url("data:image/svg+xm
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
 .pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
 .pcard.done{background:color-mix(in srgb,var(--surface) 60%,var(--bg))}
+/* مسلَّم: تهدئة الأرقام إلى ألوان محايدة (تبقى مقروءة) حتى يبرز ما لم يُسلَّم بعد */
+.pcard.done dt,.pcard.done .net span:first-child{color:var(--muted)}
+.pcard.done dd,.pcard.done dd .cur,.pcard.done .net span:last-child{color:var(--ink-2)}
 .pcard .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .pcard .head .info{flex:1;min-width:0}
 .pcard .head b{display:block;font-weight:650}
@@ -227,10 +230,9 @@ details[open] summary{margin-bottom:8px}
 
 /* ===== Motion (Phase 3) ===== */
 dialog[open]::backdrop{animation:bd-in .2s ease-out}
-dialog.closing::backdrop{animation:bd-out .2s ease-in forwards}
-dialog.closing{pointer-events:none}
+.sheet-ghost{position:fixed;z-index:80;margin:0;overflow:hidden;background:var(--surface);color:var(--ink);pointer-events:none}
+.sheet-veil{position:fixed;inset:0;z-index:79;background:rgba(5,8,12,.5);pointer-events:none}
 @keyframes bd-in{from{opacity:0}}
-@keyframes bd-out{to{opacity:0}}
 .hl{position:relative}
 .hl::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--hl,var(--brand));opacity:0;pointer-events:none;animation:hl .7s ease-out}
 @keyframes hl{from{opacity:.14}to{opacity:0}}
@@ -238,7 +240,8 @@ dialog.closing{pointer-events:none}
   .toast,.toast.show{transform:translate(-50%,0)}
   .btn:active,.icon-btn:active{transform:none}
 }
-.toast button{background:none;border:0;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:32px}
+.toast button{background:none;border:0;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:32px;flex:0 0 auto}
+.toast .msg{min-width:0;overflow:hidden;text-overflow:ellipsis} /* long names shorten; the undo button always stays reachable */
 #print{display:none}
 .slip{max-width:520px;margin:0 auto}
 .slip h2{text-align:center;margin:0 0 2px;font-size:var(--fs-lg)}
@@ -440,7 +443,7 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 let undoSnap = null;
 function toast(t, undo){
   const el = $("#toast");
-  el.innerHTML = esc(t) + (undo ? ` <button id="undoBtn">تراجع</button>` : "");
+  el.innerHTML = `<span class="msg">${esc(t)}</span>` + (undo ? `<button id="undoBtn">تراجع</button>` : "");
   if(undo) $("#undoBtn").onclick = () => { if(undoSnap){ db = undoSnap; undoSnap = null; save(); render(); toast("تم التراجع"); } };
   const ms = undo ? 5000 : 2000;
   if(undo){ const bar = document.createElement("span"); bar.className = "bar"; el.appendChild(bar);
@@ -871,13 +874,27 @@ const RM = matchMedia("(prefers-reduced-motion: reduce)");
 const EASE_OUT = "cubic-bezier(.32,.72,0,1)", EASE_IN = "cubic-bezier(.4,0,1,1)", EASE_POP = "cubic-bezier(.2,.8,.2,1)";
 const isSheetLayout = () => innerWidth <= 600;
 function motion(el, frames, opts){ if(!el || !el.animate) return null; try{ return el.animate(frames, opts); }catch(e){ return null; } }
-// يفتح الورقة بانزلاق، ويُغلقها بانزلاق من موضعها الحالي (حتى أثناء السحب). إعادة الفتح أثناء الإغلاق تُلغي الإغلاق.
+// تفتح الورقة بانزلاق. عند الإغلاق تُغلق الورقة الحقيقية فوراً (فلا تُحجب أي لمسة على الصفحة)،
+// وتنزلق نسخة مرئية غير تفاعلية من موضعها الحالي (حتى أثناء السحب) ثم تُزال.
+function sheetGhost(d){
+  const r = d.getBoundingClientRect(), cs = getComputedStyle(d);
+  const g = document.createElement("div");
+  g.className = "sheet-ghost"; g.setAttribute("aria-hidden", "true"); g.inert = true;
+  g.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;border-radius:${cs.borderRadius}`;
+  g.append(...[...d.childNodes].map(n => n.cloneNode(true)));
+  // نفس القيم الظاهرة في الحقول، ومن دون معرّفات مكرّرة
+  const src = d.querySelectorAll("input,select,textarea"), dst = g.querySelectorAll("input,select,textarea");
+  dst.forEach((el, i) => { if(src[i]){ el.value = src[i].value; if("checked" in el) el.checked = src[i].checked; } });
+  g.querySelectorAll("[id]").forEach(el => el.removeAttribute("id"));
+  g.querySelectorAll("[name]").forEach(el => el.removeAttribute("name"));
+  const veil = document.createElement("div"); veil.className = "sheet-veil"; veil.setAttribute("aria-hidden", "true");
+  document.body.append(veil, g);
+  g.scrollTop = d.scrollTop;
+  return {g, veil, r};
+}
 function animateDialog(d){
   const nativeShow = HTMLDialogElement.prototype.showModal.bind(d), nativeClose = HTMLDialogElement.prototype.close.bind(d);
-  let closing = null;
-  const finishClose = rv => { if(closing){ closing.cancel(); closing = null; } d.classList.remove("closing"); d.style.transform = ""; if(d.open) nativeClose(rv); };
   d.showModal = () => {
-    if(closing) finishClose();
     if(d.open) return;
     nativeShow();
     const enter = RM.matches ? [{opacity:0},{opacity:1}]
@@ -886,20 +903,22 @@ function animateDialog(d){
     motion(d, enter, {duration: RM.matches ? 150 : 280, easing: EASE_OUT});
   };
   d.close = rv => {
-    if(!d.open || closing) return;
+    if(!d.open) return;
     const dismiss = d.onDismiss; d.onDismiss = null; dismiss?.();
-    d.classList.add("closing");
-    const cur = getComputedStyle(d).transform;
-    const exit = RM.matches ? [{opacity:1},{opacity:0}]
-      : isSheetLayout() ? [{transform: cur && cur !== "none" ? cur : "translateY(0)"},{transform:"translateY(100%)"}]
-      : [{opacity:1},{opacity:0, transform:"translateY(8px) scale(.98)"}];
+    const ghost = d.animate ? sheetGhost(d) : null;
     d.getAnimations().forEach(a => a.cancel());
     d.style.transform = "";
-    closing = motion(d, exit, {duration: RM.matches ? 120 : 200, easing: EASE_IN, fill:"forwards"});
-    if(!closing) return finishClose(rv);
-    closing.onfinish = () => finishClose(rv);
+    nativeClose(rv);
+    if(!ghost) return;
+    const {g, veil, r} = ghost, dur = RM.matches ? 120 : 200;
+    const exit = RM.matches ? [{opacity:1},{opacity:0}]
+      : isSheetLayout() ? [{transform:"translateY(0)"},{transform:`translateY(${Math.max(innerHeight - r.top, r.height)}px)`}]
+      : [{opacity:1},{opacity:0, transform:"translateY(8px) scale(.98)"}];
+    const a = motion(g, exit, {duration: dur, easing: EASE_IN, fill:"forwards"});
+    motion(veil, [{opacity:1},{opacity:0}], {duration: dur, easing: EASE_IN, fill:"forwards"});
+    const done = () => { g.remove(); veil.remove(); };
+    if(a){ a.onfinish = done; a.oncancel = done; } else done();
   };
-  d.isClosing = () => !!closing;
   d.addEventListener("cancel", e => { e.preventDefault(); d.close(); });
 }
 const whenClosed = d => new Promise(res => { if(!d.open) return res(); d.addEventListener("close", () => res(), {once:true}); });
@@ -915,7 +934,7 @@ function slideView(dir){
 /* ========== الأوراق السفلية ========== */
 function enableSwipe(d){
   let y0 = null, dy = 0;
-  d.addEventListener("pointerdown", e => { if(e.target.closest(".sheet-grab") && !d.isClosing?.()){ d.getAnimations().forEach(a => a.finish()); y0 = e.clientY; dy = 0; e.target.setPointerCapture?.(e.pointerId); } });
+  d.addEventListener("pointerdown", e => { if(e.target.closest(".sheet-grab")){ d.getAnimations().forEach(a => a.finish()); y0 = e.clientY; dy = 0; e.target.setPointerCapture?.(e.pointerId); } });
   d.addEventListener("pointermove", e => { if(y0 == null) return; dy = Math.max(0, e.clientY - y0); d.style.transform = `translateY(${dy}px)`; });
   const end = () => { if(y0 == null) return; y0 = null;
     if(dy > 90) return d.close();
@@ -1323,6 +1342,7 @@ document.addEventListener("change", e => {
     r.delivered = t.checked; r.deliveredDate = t.checked ? today() : "";
     save(); render();
     const card = $(`[data-card="${CSS.escape(ds.deliver)}"]`);
+    card?.querySelectorAll("dl, .net").forEach(el => motion(el, [{opacity:.45},{opacity:1}], {duration:220, easing:"ease-out"}));
     if(t.checked){ flash(card, "var(--good)"); pop(card?.querySelector("[data-deliver]"), [{transform:"scale(.6)"},{transform:"scale(1.1)", offset:.6},{transform:"scale(1)"}]); pop(card?.querySelector(".head .tag"), [{opacity:0, transform:"scale(.9)"},{opacity:1, transform:"scale(1)"}]); }
     return toast(t.checked ? `تم تسليم راتب ${empName(ds.deliver)}` : "أُلغي التسليم", true);
   }

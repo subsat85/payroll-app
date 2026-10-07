@@ -5,7 +5,7 @@ const FX = require('./fixtures');
 const { APP_URL, launch, suite, askReady } = require('./lib');
 const { ok, done } = suite('animation');
 (async()=>{const b=await launch();
-for (const [rm, scheme, w] of [['no-preference','light',390],['no-preference','dark',375],['reduce','light',390],['reduce','dark',375]]){
+for (const [rm, scheme, w] of [['no-preference','light',390],['no-preference','dark',375],['no-preference','light',320],['reduce','light',390],['reduce','dark',375],['reduce','dark',320]]){
   const tag = `[${rm==='reduce'?'RM':'motion'} ${scheme} ${w}]`;
   const p=await b.newPage({viewport:{width:w,height:812}, colorScheme:scheme}); await p.emulateMedia({reducedMotion:rm}); p.errs=[]; p.on('pageerror',e=>p.errs.push(e.message));
   await p.goto(APP_URL);
@@ -19,18 +19,29 @@ for (const [rm, scheme, w] of [['no-preference','light',390],['no-preference','d
   if(rm==='reduce') ok(`${tag} sheet open is fade-only`, noMove(open), JSON.stringify(open));
   else ok(`${tag} sheet open slides from 100% with 280ms ease-out curve`, open[0].frames[0].t.includes('100%') && open[0].dur===280 && open[0].ease.includes('0.32'), JSON.stringify(open));
   await p.waitForTimeout(320);
-  // 2. close animates, dialog still open while closing, then closes
+  // 2. close: the real sheet closes at once (page interactive); a non-interactive copy animates out, then is removed
   await p.click('#dlg button[value=cancel]');
-  const mid = await p.evaluate(()=>[document.querySelector('#dlg').open, document.querySelector('#dlg').classList.contains('closing')]);
-  ok(`${tag} cancel → closing state then closed`, mid[0] && mid[1], JSON.stringify(mid));
-  await p.waitForTimeout(260); ok(`${tag} closed after exit animation`, !(await p.evaluate(()=>document.querySelector('#dlg').open)));
+  const mid = await p.evaluate(()=>{ const g=document.querySelector('.sheet-ghost'), v=document.querySelector('.sheet-veil');
+    return {open: document.querySelector('#dlg').open, ghost: !!g, veil: !!v, inert: !!g && getComputedStyle(g).pointerEvents==='none' && getComputedStyle(v).pointerEvents==='none' && g.inert===true,
+      anim: g ? g.getAnimations().map(a=>a.effect.getKeyframes().map(k=>k.transform||k.opacity)) : null, ids: g ? g.querySelectorAll('[id],[name]').length : -1}; });
+  ok(`${tag} cancel closes the real sheet immediately`, mid.open === false, JSON.stringify(mid));
+  ok(`${tag} exit copy + backdrop fade play and cannot receive taps`, mid.ghost && mid.veil && mid.inert, JSON.stringify(mid));
+  ok(`${tag} exit copy ${rm==='reduce'?'fades':'slides down'}`, rm==='reduce' ? JSON.stringify(mid.anim).includes('1') && !JSON.stringify(mid.anim).includes('translate') : JSON.stringify(mid.anim).includes('translateY'), JSON.stringify(mid.anim));
+  ok(`${tag} exit copy has no duplicate ids/names`, mid.ids === 0);
+  await p.waitForTimeout(260); ok(`${tag} exit copy removed after animation`, await p.evaluate(()=>!document.querySelector('.sheet-ghost') && !document.querySelector('.sheet-veil')));
+  // 2b. a tap made during the exit animation reaches the page (no blocking)
+  await p.click('[data-day-edit="a|2"]'); await p.waitForTimeout(320); await p.click('#dlg button[value=cancel]'); await p.waitForTimeout(30);
+  const c5 = await p.evaluate(()=>{ const r=document.querySelector('[data-day-edit="a|5"]').getBoundingClientRect(); return {x:r.x+r.width/2, y:r.y+r.height/2}; });
+  await p.mouse.click(c5.x, c5.y); await p.waitForTimeout(320);
+  ok(`${tag} tap during exit animation is not blocked`, await p.evaluate(()=>document.querySelector('#dlg').open && document.querySelector('#dlg h3').textContent.includes(' 5 ')));
+  await p.click('#dlg button[value=cancel]'); await p.waitForTimeout(260);
   // 3. interrupt: reopen while closing
   await p.click('[data-day-edit="a|2"]'); await p.waitForTimeout(320); await p.click('#dlg button[value=cancel]'); await p.waitForTimeout(40);
   await p.evaluate(()=>editDay('a',3)); await p.waitForTimeout(350);
-  ok(`${tag} reopening mid-close interrupts and stays open`, await p.evaluate(()=>{ const d=document.querySelector('#dlg'); return d.open && !d.classList.contains('closing') && d.textContent.includes('3'); }));
+  ok(`${tag} reopening mid-close works and stays open`, await p.evaluate(()=>{ const d=document.querySelector('#dlg'); return d.open && d.textContent.includes('3'); }));
   // 4. save closes with animation and persists
   await p.selectOption('dialog [data-tf=in] .tf-h','10'); await p.selectOption('dialog [data-tf=out] .tf-h','19'); await p.click('#dlg button[value=ok]');
-  ok(`${tag} save starts exit animation`, await p.evaluate(()=>document.querySelector('#dlg').classList.contains('closing')));
+  ok(`${tag} save starts exit animation (copy shows the entered values)`, await p.evaluate(()=>{ const g=document.querySelector('.sheet-ghost'); return !!g && !document.querySelector('#dlg').open && g.querySelector('.tf-h').value==='10'; }));
   await p.waitForTimeout(260); ok(`${tag} save persisted`, await p.evaluate(()=>attSheet('a',2026,5).days[3].in==='10:00' && !document.querySelector('#dlg').open));
   // 5. Escape / backdrop dismiss resolve ask() as "no"
   for (const how of ['escape','backdrop']){
@@ -51,6 +62,8 @@ for (const [rm, scheme, w] of [['no-preference','light',390],['no-preference','d
   await p.evaluate(()=>{ snapshot(); toast('مع تراجع', true); });
   const bar = await anims('#toast .bar');
   ok(`${tag} undo toast shows 5s shrinking bar`, bar && bar[0]?.dur===5000 && bar[0].frames[1].t.includes('scaleX(0)'), JSON.stringify(bar));
+  await p.evaluate(()=>{ snapshot(); toast('تم تسليم راتب عبد الرحمن بن عبد العزيز بن محمد آل عبد اللطيف', true); });
+  ok(`${tag} undo button fully visible with a long name`, await p.evaluate(()=>{ const t=document.querySelector('#toast').getBoundingClientRect(), u=document.querySelector('#undoBtn').getBoundingClientRect(); return u.width>20 && u.left>=t.left-0.5 && u.right<=t.right+0.5 && u.left>=0 && u.right<=innerWidth; }));
   ok(`${tag} toast transition is transform+opacity only`, await p.evaluate(()=>getComputedStyle(document.querySelector('#toast')).transitionProperty) === 'opacity, transform');
   // 8. check-in/out
   await p.evaluate(()=>{ state.tab='home'; render(); });
@@ -64,6 +77,17 @@ for (const [rm, scheme, w] of [['no-preference','light',390],['no-preference','d
   await p.evaluate(()=>{ state.tab='payroll'; state.y=2026; state.m=5; render(); });
   await p.click('[data-card="a"] [data-deliver]');
   ok(`${tag} delivered: card highlight`, await p.evaluate(()=>document.querySelector('[data-card="a"]').classList.contains('hl')));
+  const dim = await p.evaluate(()=>{ const c=document.querySelector('[data-card="a"]');
+    // resolve any CSS colour (incl. color-mix) to sRGB by painting it
+    const cv=document.createElement('canvas'); cv.width=cv.height=1; const x=cv.getContext('2d');
+    const rgb=col=>{ x.clearRect(0,0,1,1); x.fillStyle='#000'; x.fillStyle=col; x.fillRect(0,0,1,1); return [...x.getImageData(0,0,1,1).data].slice(0,3); };
+    const lum=col=>rgb(col).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);
+    const bg=lum(getComputedStyle(c).backgroundColor), worst=Math.min(...[...c.querySelectorAll('dd, dt, .net > span')].map(e=>{const a=lum(getComputedStyle(e).color);return (Math.max(a,bg)+.05)/(Math.min(a,bg)+.05)}));
+    const fades=[...c.querySelectorAll('dl, .net')].flatMap(e=>e.getAnimations().map(a=>Number(a.effect.getKeyframes()[0].opacity)));
+    return {done:c.classList.contains('done'), worst:+worst.toFixed(2), fades}; });
+  ok(`${tag} delivered: card dims to neutral colours`, dim.done, JSON.stringify(dim));
+  ok(`${tag} delivered: dimmed text still ≥4.5:1 contrast`, dim.worst >= 4.5, JSON.stringify(dim));
+  ok(`${tag} delivered: breakdown cross-fades (opacity only)`, dim.fades.length===2 && dim.fades.every(o=>o===0.45), JSON.stringify(dim));
   const cb = await anims('[data-card="a"] [data-deliver]');
   ok(`${tag} delivered: checkbox pop ${rm==='reduce'?'skipped':'runs'}`, rm==='reduce' ? cb.length===0 : cb.length===1, JSON.stringify(cb));
   ok(`${tag} delivered: state saved`, await p.evaluate(()=>db.payroll['2026-05'].a.delivered===true));
@@ -87,9 +111,14 @@ for (const [rm, scheme, w] of [['no-preference','light',390],['no-preference','d
   await p.mouse.up(); const back = await anims('#dlg');
   ok(`${tag} short drag ${rm==='reduce'?'snaps back instantly':'springs back (200ms)'}`, rm==='reduce' ? back.length===0 : back.length===1 && back[0].dur===200, JSON.stringify(back));
   await p.waitForTimeout(260); await p.mouse.move(g.x,g.y); await p.mouse.down(); await p.mouse.move(g.x,g.y+170,{steps:5}); await p.mouse.up();
-  const ex = await anims('#dlg');
-  ok(`${tag} long drag closes from finger position`, rm==='reduce' ? true : ex.length===1 && ex[0].frames[0].t.includes('170'), JSON.stringify(ex));
+  const ex = await p.evaluate(([gy])=>{ const g=document.querySelector('.sheet-ghost'); return g ? {top: parseFloat(g.style.top), grab: gy} : null; }, [g.y]);
+  ok(`${tag} long drag closes from finger position`, ex && ex.top >= ex.grab + 150 - 30, JSON.stringify(ex));
   await p.waitForTimeout(260); ok(`${tag} closed after long drag`, !(await p.evaluate(()=>document.querySelector('#dlg').open)));
+  // 12b. performance: every animation touched transform/opacity only (checked live during a burst of interactions)
+  const props = await p.evaluate(async ()=>{ const seen=new Set(); const grab=()=>document.getAnimations().forEach(a=>{ if(a.effect && a.effect.getKeyframes) a.effect.getKeyframes().forEach(k=>Object.keys(k).forEach(x=>{ if(!['offset','easing','composite','computedOffset'].includes(x)) seen.add(x); })); else seen.add(a.animationName||'css'); });
+    editDay('a',4); grab(); await new Promise(r=>setTimeout(r,320)); document.querySelector('#dlg').close(); grab(); toast('x', true); snapshot(); grab();
+    document.querySelector('[data-mstep="1"]')?.click(); grab(); return [...seen]; });
+  ok(`${tag} animations use transform/opacity only`, props.every(x=>['transform','opacity','hl','bd-in'].includes(x)), JSON.stringify(props));
   // 13. layout untouched: no horizontal overflow after all interactions
   ok(`${tag} no horizontal overflow`, await p.evaluate(()=>document.documentElement.scrollWidth) <= w);
   ok(`${tag} no page errors`, !p.errs.length, p.errs.join('|'));
