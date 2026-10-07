@@ -23,38 +23,49 @@
     --bad:#ef7a72; --bad-soft:#3a1d1c; --warn:#e7b44d; --warn-soft:#33290f;
   }
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;font-size:15px;line-height:1.5}
-header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 16px 0}
-header h1{margin:0 0 8px;font-size:18px;display:flex;align-items:center;gap:8px}
-header h1 span{color:var(--brand)}
-nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
-nav::-webkit-scrollbar{display:none}
-nav button{flex:0 0 auto;border:0;background:none;color:var(--muted);padding:10px 12px;font:inherit;font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
-nav button.on{color:var(--brand);border-bottom-color:var(--brand)}
-main{max-width:1100px;margin:0 auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 40px)}
+header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{margin:0;font-size:18px;color:var(--brand)}
+main{max-width:1100px;margin:0 auto;padding:14px 16px calc(env(safe-area-inset-bottom) + 90px)}
 h2{font-size:17px;margin:4px 0 12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+h3{margin:0;font-size:16px}
+/* شريط التنقل السفلي */
+#tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+#tabs button{flex:1;max-width:140px;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;font-weight:600;padding:8px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
+#tabs button i{font-style:normal;font-size:21px;line-height:1.2;filter:grayscale(1);opacity:.7}
+#tabs button.on{color:var(--brand)}
+#tabs button.on i{filter:none;opacity:1}
+/* عناصر الإدخال — min-width:0 يمنع التداخل على iPhone */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-.row>label{flex:1 1 140px}
-label{display:block;font-size:13px;color:var(--muted)}
-input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:3px}
+.row>label,.row>.f{flex:1 1 130px;min-width:0}
+label{display:block;font-size:13px;color:var(--muted);min-width:0}
+input,select,textarea{display:block;width:100%;min-width:0;max-width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-top:4px;min-height:44px}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;text-align:right}
+input::-webkit-date-and-time-value{text-align:right}
 input:focus,select:focus{outline:2px solid var(--brand);outline-offset:-1px}
-input[type=checkbox]{width:20px;height:20px;margin:0;accent-color:var(--brand)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap}
+input[type=checkbox]{width:22px;height:22px;min-height:0;margin:0;accent-color:var(--brand);flex:0 0 auto;display:inline-block}
+.check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;padding:6px 0;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;padding:9px 14px;border-radius:10px;cursor:pointer;white-space:nowrap;min-height:42px;text-decoration:none}
 .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.good{background:var(--good);border-color:var(--good);color:#fff}
 .btn.danger{color:var(--bad)}
-.btn.sm{padding:4px 10px;font-size:13px}
+.btn.sm{padding:4px 10px;font-size:13px;min-height:34px}
+.btn.block{width:100%}
+.btn:active{transform:scale(.97)}
+.time-wrap{display:flex;gap:6px;align-items:flex-end}
+.time-wrap input{flex:1}
+.time-wrap .btn{min-height:44px}
 .muted{color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:28px 10px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
 .stat small{color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
-.emp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
-.emp-head h3{margin:0;font-size:16px}
-.pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-weight:600;white-space:nowrap}
 .pill.bad{background:var(--bad-soft);color:var(--bad)}
 .pill.good{background:var(--good-soft);color:var(--good)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
@@ -62,45 +73,94 @@ dl{display:grid;grid-template-columns:1fr auto;gap:3px 10px;margin:8px 0;font-va
 dt{color:var(--muted)} dd{margin:0;text-align:left}
 .net{display:flex;justify-content:space-between;align-items:center;border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;font-weight:700;font-size:17px}
 .pos{color:var(--good)} .neg{color:var(--bad)}
-.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
-th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-th{background:var(--brand-soft);color:var(--ink);font-size:13px;position:sticky;top:0}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{background:var(--brand-soft);font-size:13px}
 tfoot td{font-weight:700;background:var(--brand-soft)}
-td input{margin:0;padding:5px 6px;min-width:84px}
-td input[type=checkbox]{min-width:0}
-tr.holiday td{background:var(--warn-soft)}
-tr.weekend td:first-child{color:var(--bad)}
-.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:12px}
-.toolbar>label{flex:1 1 150px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar .grow{flex:1 1 auto;min-width:0}
 .note{font-size:13px;color:var(--muted);margin:6px 0 0}
-dialog{border:0;border-radius:14px;padding:0;width:min(520px,calc(100vw - 32px));background:var(--card);color:var(--ink)}
+/* محدد الشهر بالأسهم */
+.mp{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px}
+.mp button{border:0;background:none;color:var(--brand);font-size:22px;width:40px;height:38px;border-radius:9px;cursor:pointer}
+.mp button:active{background:var(--brand-soft)}
+.mp span{min-width:110px;text-align:center;font-weight:700}
+/* شرائح الموظفين */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:7px 14px;font:inherit;font-weight:600;cursor:pointer}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* قائمة الأيام */
+.days{display:flex;flex-direction:column;gap:6px}
+.day{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer;text-align:right;font:inherit;color:inherit;width:100%}
+.day:active{background:var(--brand-soft)}
+.day .d b{font-size:17px;display:block;line-height:1.1}
+.day .d small{color:var(--muted);font-size:12px}
+.day.weekend .d b{color:var(--bad)}
+.day.holiday{background:var(--warn-soft)}
+.day.today{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
+.day .t{font-variant-numeric:tabular-nums}
+.day .r{text-align:left;font-variant-numeric:tabular-nums;font-size:14px}
+/* الحضور اليومي */
+.person{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.person:last-child{border-bottom:0}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;flex:0 0 auto}
+.person .info{flex:1;min-width:0}
+.person .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person .info small{color:var(--muted)}
+.list-item{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.list-item .info{flex:1;min-width:0}
+.list-item .info b{display:block}
+.list-item .info small{color:var(--muted)}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.more-grid button{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 10px;font:inherit;font-weight:600;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}
+.more-grid button i{font-style:normal;font-size:28px}
+/* النوافذ: ورقة سفلية على الجوال */
+dialog{border:0;border-radius:18px;padding:0;width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 40px);background:var(--card);color:var(--ink);overflow:auto}
 dialog::backdrop{background:rgba(0,0,0,.45)}
-dialog form{padding:16px}
-dialog h3{margin:0 0 12px}
-.actions{display:flex;gap:8px;justify-content:flex-start;margin-top:14px}
-.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 18px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
-.toast.show{opacity:1}
-.deliver{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px}
-@media print{header,.toolbar,.btn,nav{display:none!important} .card,.tbl-wrap{border:0}}
+@media (max-width:600px){
+  dialog{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:18px 18px 0 0;max-height:92dvh}
+}
+dialog form{padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
+dialog h3{margin:0 0 12px;font-size:17px}
+dialog .row{margin-bottom:10px}
+dialog label{margin-bottom:10px}
+dialog .row>label{margin-bottom:0}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.actions .btn{flex:1}
+details summary{cursor:pointer;color:var(--brand);font-weight:600;padding:6px 0}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 76px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;display:flex;gap:14px;align-items:center;white-space:nowrap}
+.toast.show{opacity:1;pointer-events:auto}
+.toast button{background:none;border:0;color:var(--brand-soft);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+#print{display:none}
+.slip{max-width:520px;margin:0 auto}
+.slip h2{text-align:center;margin-bottom:2px}
+.slip .sub{text-align:center;color:var(--muted);margin-bottom:12px}
+@media print{
+  body.printing>*:not(#print){display:none!important}
+  body.printing #print{display:block}
+  body:not(.printing) header, body:not(.printing) #tabs, body:not(.printing) .toolbar, body:not(.printing) .btn{display:none!important}
+  .card,.tbl-wrap{border:0}
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>💼 <span>الرواتب والدوام</span></h1>
-  <nav id="tabs">
-    <button data-tab="payroll">الرواتب</button>
-    <button data-tab="attendance">الدوام والإضافي</button>
-    <button data-tab="advances">السلف</button>
-    <button data-tab="overtime">ساعات إضافية</button>
-    <button data-tab="employees">الموظفين</button>
-    <button data-tab="summary">الملخص السنوي</button>
-    <button data-tab="settings">الإعدادات</button>
-  </nav>
+  <h1>💼 الرواتب والدوام</h1>
+  <span class="muted" id="hdrDate"></span>
 </header>
 <main id="view"></main>
+<nav id="tabs">
+  <button data-tab="home"><i>🏠</i>الرئيسية</button>
+  <button data-tab="attendance"><i>⏱️</i>الدوام</button>
+  <button data-tab="payroll"><i>💰</i>الرواتب</button>
+  <button data-tab="employees"><i>👥</i>الموظفين</button>
+  <button data-tab="more"><i>☰</i>المزيد</button>
+</nav>
 <dialog id="dlg"></dialog>
 <div class="toast" id="toast"></div>
+<div id="print"></div>
 
 <script>
 "use strict";
@@ -109,16 +169,15 @@ const KEY = "payroll-app-v1";
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const WEEKDAYS = ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 const END_REASONS = ["استقالة","فصل","انتهاء عقد","وفاة","أخرى"];
+const LEAVE_TYPES = ["سنوية","مرضية","بدون راتب","طارئة","أخرى"];
 const DEFAULTS = {
-  settings:{ currency:"د.أ", monthDays:30, otMultiplier:1.25, attReq:"09:00", weekend:5 },
-  employees:[], payroll:{}, advances:[], overtime:[], attendance:{}
+  settings:{ currency:"د.أ", company:"", monthDays:30, otMultiplier:1.25, attReq:"09:00", weekend:5, ssPct:0, annualLeave:14, defIn:"", defOut:"" },
+  employees:[], payroll:{}, advances:[], overtime:[], attendance:{}, leaves:[]
 };
+const normalize = d => ({...structuredClone(DEFAULTS), ...d, settings:{...DEFAULTS.settings, ...(d.settings||{})}, leaves: d.leaves || []});
 let db = load();
 function load(){
-  try{
-    const d = JSON.parse(localStorage.getItem(KEY) || "null");
-    if(d) return {...structuredClone(DEFAULTS), ...d, settings:{...DEFAULTS.settings, ...(d.settings||{})}};
-  }catch(e){}
+  try{ const d = JSON.parse(localStorage.getItem(KEY) || "null"); if(d) return normalize(d); }catch(e){}
   return structuredClone(DEFAULTS);
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){ toast("تعذّر الحفظ في الجهاز"); } }
@@ -128,38 +187,61 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(n) ? n : 0; };
+const fix = v => Math.round(v*100)/100;
 // الأرقام تُعرض باتجاه LTR حتى تظهر الإشارة السالبة في مكانها الصحيح
 const nb = v => `<bdi dir="ltr">${v}</bdi>`;
-const money = v => nb((Math.round(v*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})) + " " + esc(db.settings.currency);
-const fix = v => Math.round(v*100)/100;
+const fmt2 = v => fix(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const moneyText = v => fmt2(v) + " " + db.settings.currency;
+const money = v => nb(fmt2(v)) + " " + esc(db.settings.currency);
 const pad = n => String(n).padStart(2,"0");
 const ym = (y,m) => `${y}-${pad(m)}`;
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const now = () => new Date();
+const today = () => { const d = now(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const nowHM = () => { const d = now(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const parseDate = s => { if(!s) return null; const [y,m,d] = s.split("-").map(Number); return Date.UTC(y,m-1,d); };
 const DAY = 86400000;
 const daysInMonth = (y,m) => new Date(Date.UTC(y,m,0)).getUTCDate();
-// "HH:MM" -> دقائق
 const toMin = s => { if(!s) return null; const [h,m] = s.split(":").map(Number); return isFinite(h) ? h*60 + (m||0) : null; };
 const hmText = mins => { if(mins == null) return ""; const sg = mins < 0 ? "-" : ""; mins = Math.round(Math.abs(mins)); return `${sg}${Math.floor(mins/60)}:${pad(mins%60)}`; };
 const hm = mins => mins == null ? "" : nb(hmText(mins));
-function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"), 1800); }
+const initials = n => esc((n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join(""));
+let undoSnap = null;
+function toast(t, undo){
+  const el = $("#toast");
+  el.innerHTML = esc(t) + (undo ? ` <button id="undoBtn">تراجع</button>` : "");
+  if(undo) $("#undoBtn").onclick = () => { if(undoSnap){ db = undoSnap; undoSnap = null; save(); render(); toast("تم التراجع"); } };
+  el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"), undo ? 5000 : 1800);
+}
+const snapshot = () => { undoSnap = structuredClone(db); };
 const empById = id => db.employees.find(e => e.id === id);
 const empName = id => empById(id)?.name || "—";
+const isActive = (e, dateStr = today()) => { const t = parseDate(e.endDate), h = parseDate(e.hire), d = parseDate(dateStr); return (h==null || h<=d) && (t==null || t>=d); };
 function empOptions(sel, onlyActive){
-  const list = db.employees.filter(e => !onlyActive || !e.endDate || e.id === sel);
-  return list.map(e => `<option value="${e.id}" ${e.id===sel?"selected":""}>${esc(e.name)}</option>`).join("");
+  return db.employees.filter(e => !onlyActive || !e.endDate || e.id === sel)
+    .map(e => `<option value="${e.id}" ${e.id===sel?"selected":""}>${esc(e.name)}</option>`).join("");
 }
-const state = { tab: "payroll", y: new Date().getFullYear(), m: new Date().getMonth()+1, attEmp: null };
+const state = { tab:"home", y:now().getFullYear(), m:now().getMonth()+1, attEmp:null, profile:null, q:"" };
 try{ Object.assign(state, JSON.parse(sessionStorage.getItem("payroll-ui")||"{}")); }catch(e){}
 const keepUI = () => { try{ sessionStorage.setItem("payroll-ui", JSON.stringify(state)); }catch(e){} };
 
-function monthPicker(){
-  const ys = new Set([state.y]); for(let y=new Date().getFullYear()-3; y<=new Date().getFullYear()+1; y++) ys.add(y);
-  return `<label>الشهر<select data-ui="m">${MONTHS.map((n,i)=>`<option value="${i+1}" ${i+1==state.m?"selected":""}>${n}</option>`).join("")}</select></label>
-          <label>السنة<select data-ui="y">${[...ys].sort().map(y=>`<option ${y==state.y?"selected":""}>${y}</option>`).join("")}</select></label>`;
-}
+const monthPicker = yearOnly => `<div class="mp"><button data-mstep="-1" aria-label="السابق">›</button><span>${yearOnly?"":MONTHS[state.m-1]+" "}${state.y}</span><button data-mstep="1" aria-label="التالي">‹</button></div>`;
+const onLeaveOn = (empId, ds) => db.leaves.find(l => l.empId===empId && l.from<=ds && (l.to||l.from)>=ds);
 
-/* ========== حساب الراتب (مطابق لمعادلات ملف الرواتب) ========== */
+/* ========== الإجازات ========== */
+// عدد أيام الإجازة (من نوع معيّن اختيارياً) داخل الفترة [start,end]
+function leaveDays(empId, start, end, type){
+  let n = 0;
+  for(const l of db.leaves){
+    if(l.empId !== empId || (type && l.type !== type)) continue;
+    const a = parseDate(l.from), b = parseDate(l.to || l.from); if(a==null) continue;
+    const s = Math.max(a,start), e = Math.min(b,end);
+    if(e >= s) n += Math.round((e-s)/DAY) + 1;
+  }
+  return n;
+}
+const leaveBalance = (emp, y) => num(db.settings.annualLeave) - leaveDays(emp.id, Date.UTC(y,0,1), Date.UTC(y,11,31), "سنوية");
+
+/* ========== حساب الراتب (مطابق لمعادلات ملف الرواتب + إضافات اختيارية) ========== */
 function calcPay(emp, y, m){
   const S = db.settings, MD = num(S.monthDays) || 30;
   const start = Date.UTC(y,m-1,1), end = Date.UTC(y,m-1,daysInMonth(y,m));
@@ -171,240 +253,496 @@ function calcPay(emp, y, m){
   const salary = num(emp.salary), hrs = num(emp.hours);
   const dayRate = salary / MD, hourRate = hrs ? dayRate / hrs : 0;
   const rec = db.payroll[ym(y,m)]?.[emp.id] || {};
-  const absDays = num(rec.absDays), lateHours = num(rec.lateHours);
+  const absDays = num(rec.absDays), lateHours = num(rec.lateHours), bonus = num(rec.bonus), otherDed = num(rec.otherDed);
   const prefix = ym(y,m);
   const adv = db.advances.filter(a => a.empId===emp.id && a.date?.startsWith(prefix)).reduce((s,a)=>s+num(a.amount),0);
   const otHours = db.overtime.filter(o => o.empId===emp.id && o.date?.startsWith(prefix)).reduce((s,o)=>s+num(o.hours),0);
+  const unpaidDays = leaveDays(emp.id, start, end, "بدون راتب");
   const base = dayRate * days;
   const absDed = dayRate * absDays;
+  const unpaidDed = dayRate * unpaidDays;
   const lateDed = hourRate * lateHours;
   const otPay = hourRate * otHours * num(S.otMultiplier);
-  const deductions = absDed + lateDed + adv;
-  return { days, base, absDays, lateHours, absDed, lateDed, adv, otHours, otPay, deductions,
-           net: base - deductions + otPay, delivered: !!rec.delivered, deliveredDate: rec.deliveredDate || "" };
+  const ss = base * num(S.ssPct) / 100;
+  const deductions = absDed + unpaidDed + lateDed + adv + otherDed + ss;
+  return { days, base, absDays, lateHours, absDed, unpaidDays, unpaidDed, lateDed, adv, otHours, otPay, bonus, otherDed, ss, deductions,
+           net: base - deductions + otPay + bonus, delivered: !!rec.delivered, deliveredDate: rec.deliveredDate || "", note: rec.note || "" };
 }
 const otRateFor = emp => { const h = num(emp?.hours); return h ? num(emp.salary)/(num(db.settings.monthDays)||30)/h*num(db.settings.otMultiplier) : 0; };
-// الموظفون الذين يخصّهم الشهر (موظفون قبل نهايته ولم تنتهِ خدمتهم قبل بدايته)
 function empsForMonth(y,m){
   const start = Date.UTC(y,m-1,1), end = Date.UTC(y,m-1,daysInMonth(y,m));
   return db.employees.filter(e => { const h = parseDate(e.hire), t = parseDate(e.endDate); return h!=null && h<=end && (t==null || t>=start); });
 }
 
-/* ========== الشاشات ========== */
-const views = {};
-
-views.payroll = () => {
-  const {y,m} = state, emps = empsForMonth(y,m);
-  const rows = emps.map(e => ({e, p: calcPay(e,y,m)}));
-  const tot = k => rows.reduce((s,r)=>s+r.p[k],0);
-  const delivered = rows.filter(r=>r.p.delivered).length;
-  return `
-  <div class="toolbar">${monthPicker()}
-    <button class="btn" data-act="export-month">⬇️ تصدير Excel</button>
-    <button class="btn" onclick="print()">🖨️ طباعة</button></div>
-  ${!db.employees.length ? `<div class="card empty">لا يوجد موظفون بعد.<br><br><button class="btn primary" data-go="employees">➕ إضافة موظف</button></div>` :
-    !rows.length ? `<div class="card empty">لا يوجد موظفون على رأس عملهم في ${MONTHS[m-1]} ${y}.</div>` : `
-  <div class="stats">
-    <div class="stat"><small>إجمالي الأساسي</small><b>${money(tot("base"))}</b></div>
-    <div class="stat"><small>إجمالي الخصومات</small><b class="neg">${money(tot("deductions"))}</b></div>
-    <div class="stat"><small>أجر الإضافي</small><b class="${tot("otPay")<0?"neg":"pos"}">${money(tot("otPay"))}</b></div>
-    <div class="stat"><small>صافي الرواتب</small><b>${money(tot("net"))}</b></div>
-    <div class="stat"><small>تم التسليم</small><b>${delivered} / ${rows.length}</b></div>
-  </div>
-  <div class="grid">${rows.map(({e,p}) => `
-    <div class="card">
-      <div class="emp-head"><div><h3>${esc(e.name)}</h3><span class="muted">${esc(e.title||"")}</span></div>
-        <span class="pill ${p.days<(num(db.settings.monthDays)||30)?"warn":""}">${p.days} يوم استحقاق</span></div>
-      <div class="row">
-        <label>أيام غياب/إجازة<input type="number" inputmode="decimal" step="0.5" min="0" value="${p.absDays||""}" data-pay="absDays" data-emp="${e.id}"></label>
-        <label>ساعات تأخير<input type="number" inputmode="decimal" step="0.25" min="0" value="${p.lateHours||""}" data-pay="lateHours" data-emp="${e.id}"></label>
-      </div>
-      <dl>
-        <dt>الراتب الشهري</dt><dd>${money(num(e.salary))}</dd>
-        <dt>الراتب الأساسي المستحق</dt><dd>${money(p.base)}</dd>
-        <dt>خصم الغياب</dt><dd class="${p.absDed?"neg":""}">${money(p.absDed)}</dd>
-        <dt>خصم التأخير</dt><dd class="${p.lateDed?"neg":""}">${money(p.lateDed)}</dd>
-        <dt>السلف</dt><dd class="${p.adv?"neg":""}">${money(p.adv)}</dd>
-        <dt>ساعات إضافي</dt><dd>${nb(fix(p.otHours))}</dd>
-        <dt>أجر الإضافي</dt><dd class="${p.otPay>0?"pos":p.otPay<0?"neg":""}">${money(p.otPay)}</dd>
-        <dt>إجمالي الخصومات</dt><dd>${money(p.deductions)}</dd>
-      </dl>
-      <div class="net"><span>الصافي</span><span class="${p.net<0?"neg":""}">${money(p.net)}</span></div>
-      <label class="deliver"><input type="checkbox" data-deliver="${e.id}" ${p.delivered?"checked":""}> تم التسليم ${p.delivered?`<span class="pill good">${esc(p.deliveredDate)}</span>`:""}</label>
-    </div>`).join("")}
-  </div>`}`;
-};
-
-views.attendance = () => {
-  if(!db.employees.length) return `<div class="card empty">أضف موظفاً أولاً.<br><br><button class="btn primary" data-go="employees">➕ إضافة موظف</button></div>`;
-  if(!empById(state.attEmp)) state.attEmp = db.employees[0].id;
-  const {y,m} = state, emp = empById(state.attEmp), key = `${emp.id}|${ym(y,m)}`;
-  const sheet = db.attendance[key] || {};
-  const reqDefault = sheet.req || db.settings.attReq;
-  const rate = sheet.rate != null && sheet.rate !== "" ? num(sheet.rate) : otRateFor(emp);
-  const res = calcAttendance(sheet, y, m, rate);
-  const nd = daysInMonth(y,m);
-  let body = "";
-  for(let d=1; d<=nd; d++){
-    const r = sheet.days?.[d] || {}, c = res.days[d], wd = new Date(Date.UTC(y,m-1,d)).getUTCDay();
-    const f = (k,t="time") => `<input type="${t}" value="${esc(r[k]||"")}" data-att="${k}" data-day="${d}">`;
-    body += `<tr class="${r.holiday?"holiday":""} ${wd==db.settings.weekend?"weekend":""}">
-      <td><b>${d}</b> <span class="muted">${WEEKDAYS[wd]}</span></td>
-      <td>${f("in")}</td><td>${f("out")}</td>
-      <td style="text-align:center"><input type="checkbox" data-att="holiday" data-day="${d}" ${r.holiday?"checked":""}></td>
-      <td>${c ? hm(c.actual) : ""}</td><td>${c ? hm(c.req) : ""}</td>
-      <td class="pos">${c && c.over ? hm(c.over) : ""}</td><td class="neg">${c && c.short ? hm(c.short) : ""}</td>
-      <td class="${c?.pay<0?"neg":c?.pay>0?"pos":""}">${c ? fix(c.pay).toFixed(2) : ""}</td>
-      <td>${f("req")}</td><td>${f("lf")}</td><td>${f("lt")}</td><td>${f("lm")}</td></tr>`;
-  }
-  return `
-  <div class="toolbar">
-    <label>الموظف<select data-ui="attEmp">${empOptions(emp.id)}</select></label>${monthPicker()}</div>
-  <div class="card"><div class="row">
-    <label>ساعات الدوام المطلوبة يومياً<input type="time" value="${esc(reqDefault)}" data-attset="req"></label>
-    <label>سعر الساعة الإضافية (${db.settings.currency})<input type="number" step="0.01" inputmode="decimal" value="${sheet.rate ?? ""}" placeholder="${fix(otRateFor(emp)).toFixed(2)} (تلقائي)" data-attset="rate"></label>
-  </div><p class="note">السعر التلقائي = الراتب ÷ ${db.settings.monthDays} ÷ ساعات العمل اليومية × ${db.settings.otMultiplier}. أدخل الحضور والمغادرة (الدوام بعد منتصف الليل يُحسب تلقائياً)، ووقت المغادرة المؤقتة إن وُجد.</p></div>
-  <div class="stats">
-    <div class="stat"><small>ساعات فعلية</small><b>${hm(res.actual)}</b></div>
-    <div class="stat"><small>الزيادة</small><b class="pos">${hm(res.over)}</b></div>
-    <div class="stat"><small>النقص</small><b class="neg">${hm(res.short)}</b></div>
-    <div class="stat"><small>الصافي (زيادة − نقص)</small><b class="${res.over-res.short<0?"neg":"pos"}">${hm(res.over-res.short)}</b></div>
-    <div class="stat"><small>قيمة الإضافي</small><b class="${res.pay<0?"neg":"pos"}">${money(res.pay)}</b></div>
-  </div>
-  <div class="toolbar"><button class="btn primary" data-act="post-ot">↪️ ترحيل الصافي إلى رواتب ${MONTHS[m-1]}</button>
-    <button class="btn danger" data-act="clear-att">مسح الشهر</button></div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>اليوم</th><th>الحضور</th><th>المغادرة</th><th>عطلة</th><th>الفعلية</th><th>المطلوبة</th><th>زيادة</th><th>نقص</th><th>الأجر</th><th>مطلوبة (تعديل)</th><th>مغادرة من</th><th>مغادرة إلى</th><th>مدة مغادرة (يدوي)</th></tr></thead>
-    <tbody>${body}</tbody>
-    <tfoot><tr><td>الإجمالي</td><td></td><td></td><td></td><td>${hm(res.actual)}</td><td>${hm(res.req)}</td><td>${hm(res.over)}</td><td>${hm(res.short)}</td><td>${nb(fix(res.pay).toFixed(2))}</td><td colspan="4"></td></tr></tfoot>
-  </table></div>`;
-};
-
-// مطابق لمعادلات حاسبة الساعات الإضافية
+/* ========== الدوام (مطابق لحاسبة الساعات الإضافية) ========== */
+const attKey = (empId,y,m) => `${empId}|${ym(y,m)}`;
+const attSheet = (empId,y,m,create) => create ? (db.attendance[attKey(empId,y,m)] ||= {}) : (db.attendance[attKey(empId,y,m)] || {});
+const sheetRate = (sheet, emp) => sheet.rate != null && sheet.rate !== "" ? num(sheet.rate) : otRateFor(emp);
+function calcDay(sheet, r){
+  const a = toMin(r?.in), b = toMin(r?.out);
+  if(a == null || b == null) return null;
+  const lf = toMin(r.lf), lt = toMin(r.lt);
+  const leave = (lf!=null && lt!=null) ? (lt - lf + 1440) % 1440 : (toMin(r.lm) ?? 0);
+  const actual = Math.max(((b - a + 1440) % 1440) - leave, 0);
+  const req = r.holiday ? 0 : (toMin(r.req) ?? toMin(sheet.req || db.settings.attReq) ?? 0);
+  return { actual, req, over: Math.max(actual - req, 0), short: Math.max(req - actual, 0) };
+}
 function calcAttendance(sheet, y, m, rate){
-  const out = { days:{}, actual:0, req:0, over:0, short:0, pay:0 };
-  const reqDef = toMin(sheet.req || db.settings.attReq) ?? 0;
+  const out = { days:{}, actual:0, req:0, over:0, short:0, pay:0, worked:0 };
   for(let d=1; d<=daysInMonth(y,m); d++){
-    const r = sheet.days?.[d]; if(!r) continue;
-    const a = toMin(r.in), b = toMin(r.out);
-    if(a == null || b == null) continue;
-    const lf = toMin(r.lf), lt = toMin(r.lt);
-    const leave = (lf!=null && lt!=null) ? (lt - lf + 1440) % 1440 : (toMin(r.lm) ?? 0);
-    const actual = Math.max(((b - a + 1440) % 1440) - leave, 0);
-    const req = r.holiday ? 0 : (toMin(r.req) ?? reqDef);
-    const over = Math.max(actual - req, 0), short = Math.max(req - actual, 0);
-    const pay = (over - short) / 60 * rate;
-    out.days[d] = {actual, req, over, short, pay};
-    out.actual += actual; out.req += req; out.over += over; out.short += short; out.pay += pay;
+    const c = calcDay(sheet, sheet.days?.[d]); if(!c) continue;
+    c.pay = (c.over - c.short) / 60 * rate;
+    out.days[d] = c; out.worked++;
+    out.actual += c.actual; out.req += c.req; out.over += c.over; out.short += c.short; out.pay += c.pay;
   }
   return out;
 }
 
-function recordList(kind){
-  const isAdv = kind === "advances", list = db[kind];
-  const prefix = ym(state.y,state.m);
-  const rows = list.filter(r => r.date?.startsWith(prefix)).sort((a,b)=>a.date.localeCompare(b.date));
-  const total = rows.reduce((s,r)=>s+num(isAdv?r.amount:r.hours),0);
-  return `
-  <div class="toolbar">${monthPicker()}<button class="btn primary" data-act="add-${kind}">➕ ${isAdv?"سلفة جديدة":"ساعات إضافية"}</button></div>
-  <div class="stats"><div class="stat"><small>${isAdv?"إجمالي السلف":"إجمالي الساعات"} — ${MONTHS[state.m-1]}</small><b>${isAdv?money(total):nb(fix(total))}</b></div>
-    <div class="stat"><small>عدد السجلات</small><b>${rows.length}</b></div></div>
-  ${!rows.length ? `<div class="card empty">لا توجد سجلات في هذا الشهر.</div>` : `
-  <div class="tbl-wrap"><table><thead><tr><th>التاريخ</th><th>الموظف</th><th>${isAdv?"المبلغ":"الساعات"}</th><th>ملاحظات</th><th></th></tr></thead><tbody>
-  ${rows.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(empName(r.empId))}</td><td>${isAdv?money(num(r.amount)):nb(fix(num(r.hours)))}</td><td>${esc(r.note||"")}</td>
-    <td><button class="btn sm" data-edit="${kind}:${r.id}">تعديل</button> <button class="btn sm danger" data-del="${kind}:${r.id}">حذف</button></td></tr>`).join("")}
-  </tbody></table></div>`}
-  ${!isAdv ? `<p class="note">الساعات السالبة تُخصم بنفس سعر الإضافي. يمكن أيضاً ترحيل الصافي من شاشة «الدوام والإضافي».</p>` : ""}`;
-}
-views.advances = () => db.employees.length ? recordList("advances") : `<div class="card empty">أضف موظفاً أولاً.</div>`;
-views.overtime = () => db.employees.length ? recordList("overtime") : `<div class="card empty">أضف موظفاً أولاً.</div>`;
+/* ========== الشاشات ========== */
+const views = {};
+const needEmp = () => `<div class="card empty">لا يوجد موظفون بعد.<br><br><button class="btn primary" data-act="add-emp">➕ إضافة موظف</button></div>`;
 
-views.employees = () => `
-  <div class="toolbar"><button class="btn primary" data-act="add-emp">➕ موظف جديد</button></div>
-  ${!db.employees.length ? `<div class="card empty">لا يوجد موظفون. ابدأ بإضافة أول موظف.</div>` : `
-  <div class="tbl-wrap"><table><thead><tr><th>#</th><th>الاسم</th><th>المسمى</th><th>تاريخ التوظيف</th><th>الراتب</th><th>ساعات/يوم</th><th>الحالة</th><th></th></tr></thead><tbody>
-  ${db.employees.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(e.name)}</td><td>${esc(e.title||"")}</td><td>${esc(e.hire||"")}</td><td>${money(num(e.salary))}</td><td>${esc(e.hours)}</td>
-    <td>${e.endDate?`<span class="pill bad">${esc(e.endReason||"منتهية")} ${esc(e.endDate)}</span>`:`<span class="pill good">نشط</span>`}</td>
-    <td><button class="btn sm" data-edit="employees:${e.id}">تعديل</button> <button class="btn sm danger" data-del="employees:${e.id}">حذف</button></td></tr>`).join("")}
-  </tbody></table></div>`}`;
+views.home = () => {
+  const d = now(), y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+  const active = db.employees.filter(e => isActive(e));
+  const pays = empsForMonth(y,m).map(e => calcPay(e,y,m));
+  const net = pays.reduce((s,p)=>s+p.net,0), undelivered = pays.filter(p=>!p.delivered).length;
+  const adv = db.advances.filter(a=>a.date?.startsWith(ym(y,m))).reduce((s,a)=>s+num(a.amount),0);
+  const people = active.map(e => {
+    const sh = attSheet(e.id,y,m), r = sh.days?.[day] || {};
+    let st, btn = "";
+    if(onLeaveOn(e.id, today())) st = `<span class="pill warn">في إجازة</span>`;
+    else if(r.holiday) st = `<span class="pill warn">عطلة</span>`;
+    else if(r.in && r.out) { st = `انصرف ${nb(r.out)} · ${hm(calcDay(sh, r).actual)} ساعة`; btn = `<button class="btn sm" data-day-edit="${e.id}|${day}">تعديل</button>`; }
+    else if(r.in) { st = `حاضر منذ ${nb(r.in)}`; btn = `<button class="btn sm primary" data-punch="out|${e.id}">انصراف</button>`; }
+    else { st = `<span class="muted">لم يسجّل حضور</span>`; btn = `<button class="btn sm good" data-punch="in|${e.id}">حضور</button>`; }
+    return `<div class="person"><div class="avatar">${initials(e.name)}</div><div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
+  }).join("");
+  return `
+  <div class="stats">
+    <div class="stat"><small>موظفون نشطون</small><b>${active.length}</b></div>
+    <div class="stat"><small>صافي رواتب ${MONTHS[m-1]}</small><b>${money(net)}</b></div>
+    <div class="stat"><small>رواتب لم تُسلَّم</small><b class="${undelivered?"neg":""}">${undelivered}</b></div>
+    <div class="stat"><small>سلف هذا الشهر</small><b>${money(adv)}</b></div>
+  </div>
+  <div class="card">
+    <div class="between" style="margin-bottom:4px"><h3>حضور اليوم</h3><span class="muted">${WEEKDAYS[d.getDay()]} ${day} ${MONTHS[m-1]}</span></div>
+    ${!db.employees.length ? needEmp() : active.length ? people : `<p class="muted">لا يوجد موظفون نشطون.</p>`}
+  </div>
+  <div class="card"><h3 style="margin-bottom:10px">إجراءات سريعة</h3>
+    <div class="more-grid">
+      <button data-act="add-emp"><i>👤</i>موظف جديد</button>
+      <button data-act="add-advances"><i>💵</i>سلفة</button>
+      <button data-act="add-leaves"><i>🌴</i>إجازة</button>
+      <button data-act="add-overtime"><i>⏫</i>ساعات إضافية</button>
+    </div></div>`;
+};
+
+views.attendance = () => {
+  if(!db.employees.length) return needEmp();
+  if(!empById(state.attEmp)) state.attEmp = (db.employees.find(e=>isActive(e)) || db.employees[0]).id;
+  const {y,m} = state, emp = empById(state.attEmp), sheet = attSheet(emp.id,y,m);
+  const res = calcAttendance(sheet, y, m, sheetRate(sheet, emp));
+  const isCur = y===now().getFullYear() && m===now().getMonth()+1;
+  let list = "";
+  for(let d=1; d<=daysInMonth(y,m); d++){
+    const r = sheet.days?.[d] || {}, c = res.days[d], wd = new Date(Date.UTC(y,m-1,d)).getUTCDay();
+    const lv = onLeaveOn(emp.id, `${ym(y,m)}-${pad(d)}`);
+    const mid = (r.in || r.out)
+      ? `${nb(r.in||"--:--")} ← ${nb(r.out||"--:--")}${c?` <span class="muted">· ${hm(c.actual)}</span>`:""}`
+      : `<span class="muted">${lv ? "إجازة "+esc(lv.type) : r.holiday ? "عطلة" : "اضغط للإدخال"}</span>`;
+    const right = c ? (c.over ? `<span class="pos">+${hm(c.over)}</span>` : c.short ? `<span class="neg">−${hm(c.short)}</span>` : `<span class="muted">✓</span>`) : (r.holiday ? `<span class="pill warn">عطلة</span>` : "");
+    list += `<button class="day ${r.holiday||lv?"holiday":""} ${wd==db.settings.weekend?"weekend":""} ${isCur&&d===now().getDate()?"today":""}" data-day-edit="${emp.id}|${d}">
+      <span class="d"><b>${d}</b><small>${WEEKDAYS[wd]}</small></span><span class="t">${mid}</span><span class="r">${right}</span></button>`;
+  }
+  return `
+  <div class="chips">${db.employees.map(e=>`<button class="chip ${e.id===emp.id?"on":""}" data-att-emp="${e.id}">${esc(e.name)}</button>`).join("")}</div>
+  <div class="toolbar">${monthPicker()}<span class="grow"></span><button class="btn sm" data-act="att-settings">⚙️ إعدادات</button></div>
+  <div class="stats">
+    <div class="stat"><small>أيام مسجّلة</small><b>${res.worked}</b></div>
+    <div class="stat"><small>ساعات فعلية</small><b>${hm(res.actual)}</b></div>
+    <div class="stat"><small>زيادة / نقص</small><b><span class="pos">${hm(res.over)}</span> / <span class="neg">${hm(res.short)}</span></b></div>
+    <div class="stat"><small>الصافي · القيمة</small><b class="${res.pay<0?"neg":"pos"}">${hm(res.over-res.short)} · ${money(res.pay)}</b></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn" data-act="quick-fill">⚡ تعبئة سريعة</button>
+    <button class="btn primary" data-act="post-ot">↪️ ترحيل للرواتب</button>
+    <button class="btn danger sm" data-act="clear-att">مسح الشهر</button>
+  </div>
+  <div class="days">${list}</div>`;
+};
+
+function payCard(e, p){
+  const MD = num(db.settings.monthDays)||30;
+  const line = (t,v,cls) => v ? `<dt>${t}</dt><dd class="${cls||""}">${money(v)}</dd>` : "";
+  return `<div class="card">
+    <div class="between" style="margin-bottom:6px"><div><h3>${esc(e.name)}</h3><span class="muted">${esc(e.title||"")}</span></div>
+      <span class="pill ${p.days<MD?"warn":""}">${p.days} يوم</span></div>
+    <dl>
+      <dt>الراتب الأساسي المستحق</dt><dd>${money(p.base)}</dd>
+      ${p.absDays?`<dt>غياب ${nb(fix(p.absDays))} يوم</dt><dd class="neg">${money(p.absDed)}</dd>`:""}
+      ${p.unpaidDays?`<dt>إجازة بدون راتب ${p.unpaidDays} يوم</dt><dd class="neg">${money(p.unpaidDed)}</dd>`:""}
+      ${p.lateHours?`<dt>تأخير ${nb(fix(p.lateHours))} ساعة</dt><dd class="neg">${money(p.lateDed)}</dd>`:""}
+      ${line("السلف",p.adv,"neg")}${line("خصومات أخرى",p.otherDed,"neg")}${line("الضمان الاجتماعي",p.ss,"neg")}
+      ${p.otHours?`<dt>إضافي ${nb(fix(p.otHours))} ساعة</dt><dd class="${p.otPay<0?"neg":"pos"}">${money(p.otPay)}</dd>`:""}
+      ${line("مكافآت وعلاوات",p.bonus,"pos")}
+    </dl>
+    <div class="net"><span>الصافي</span><span class="${p.net<0?"neg":""}">${money(p.net)}</span></div>
+    <div class="toolbar" style="margin:10px 0 0">
+      <button class="btn sm" data-pay-edit="${e.id}">✏️ غياب/تأخير/مكافأة</button>
+      <button class="btn sm" data-slip="${e.id}">🧾 القسيمة</button>
+      <span class="grow"></span>
+      <label class="check"><input type="checkbox" data-deliver="${e.id}" ${p.delivered?"checked":""}> ${p.delivered?`سُلِّم ${esc(p.deliveredDate)}`:"تم التسليم"}</label>
+    </div></div>`;
+}
+views.payroll = () => {
+  if(!db.employees.length) return needEmp();
+  const {y,m} = state, rows = empsForMonth(y,m).map(e => ({e, p: calcPay(e,y,m)}));
+  const tot = k => rows.reduce((s,r)=>s+r.p[k],0);
+  return `
+  <div class="toolbar">${monthPicker()}<span class="grow"></span>
+    <button class="btn sm" data-act="export-month">⬇️ Excel</button><button class="btn sm" onclick="print()">🖨️</button></div>
+  ${!rows.length ? `<div class="card empty">لا يوجد موظفون على رأس عملهم في ${MONTHS[m-1]} ${y}.</div>` : `
+  <div class="stats">
+    <div class="stat"><small>إجمالي الأساسي</small><b>${money(tot("base"))}</b></div>
+    <div class="stat"><small>إجمالي الخصومات</small><b class="neg">${money(tot("deductions"))}</b></div>
+    <div class="stat"><small>إضافي ومكافآت</small><b class="${tot("otPay")+tot("bonus")<0?"neg":"pos"}">${money(tot("otPay")+tot("bonus"))}</b></div>
+    <div class="stat"><small>صافي الرواتب</small><b>${money(tot("net"))}</b></div>
+    <div class="stat"><small>تم التسليم</small><b>${rows.filter(r=>r.p.delivered).length} / ${rows.length}</b></div>
+  </div>
+  <div class="grid">${rows.map(({e,p}) => payCard(e,p)).join("")}</div>`}`;
+};
+
+const empListHTML = () => {
+  const q = state.q.trim();
+  const list = db.employees.filter(e => !q || (e.name+" "+(e.title||"")+" "+(e.phone||"")).includes(q));
+  return list.map(e => `<div class="list-item" data-profile="${e.id}"><div class="avatar">${initials(e.name)}</div>
+    <div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.title?" · ":""}${money(num(e.salary))}</small></div>
+    ${e.endDate?`<span class="pill bad">${esc(e.endReason||"منتهية")}</span>`:`<span class="pill good">نشط</span>`}</div>`).join("") || `<div class="empty">لا نتائج</div>`;
+};
+views.employees = () => {
+  if(!db.employees.length) return needEmp();
+  return `<div class="toolbar"><input class="grow" type="search" placeholder="🔍 بحث بالاسم أو المسمى أو الهاتف" value="${esc(state.q)}" data-search style="margin:0">
+    <button class="btn primary" data-act="add-emp">➕ موظف</button></div>
+  <div id="empList">${empListHTML()}</div>`;
+};
+
+views.profile = () => {
+  const e = empById(state.profile); if(!e){ state.tab = "employees"; return views.employees(); }
+  const y = now().getFullYear(), s = {deductions:0,adv:0,otPay:0,bonus:0,net:0};
+  for(let m=1;m<=12;m++){ const p = calcPay(e,y,m); for(const k in s) s[k]+=p[k]; }
+  const lv = db.leaves.filter(l=>l.empId===e.id).sort((a,b)=>b.from.localeCompare(a.from)).slice(0,8);
+  const adv = db.advances.filter(a=>a.empId===e.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  const years = e.hire ? (Date.now() - parseDate(e.hire)) / (365.25*DAY) : 0;
+  return `<div class="toolbar"><button class="btn sm" data-go="employees">→ رجوع</button><span class="grow"></span>
+    <button class="btn sm" data-edit="employees:${e.id}">✏️ تعديل</button><button class="btn sm danger" data-del="employees:${e.id}">حذف</button></div>
+  <div class="card"><div style="display:flex;gap:12px;align-items:center"><div class="avatar" style="width:56px;height:56px;font-size:20px">${initials(e.name)}</div>
+    <div><h2 style="margin:0">${esc(e.name)}</h2><span class="muted">${esc(e.title||"")}</span> ${e.endDate?`<span class="pill bad">${esc(e.endReason||"منتهية")} ${esc(e.endDate)}</span>`:`<span class="pill good">نشط</span>`}</div></div>
+    <dl>
+      <dt>تاريخ التوظيف</dt><dd>${esc(e.hire||"")} ${years>0?`<span class="muted">(${nb(years.toFixed(1))} سنة)</span>`:""}</dd>
+      <dt>الراتب الشهري</dt><dd>${money(num(e.salary))}</dd>
+      <dt>ساعات العمل اليومية</dt><dd>${esc(e.hours)}</dd>
+      <dt>سعر ساعة الإضافي</dt><dd>${money(otRateFor(e))}</dd>
+      ${e.phone?`<dt>الهاتف</dt><dd><a href="tel:${esc(e.phone)}">${nb(esc(e.phone))}</a></dd>`:""}
+      ${e.nid?`<dt>الرقم الوطني</dt><dd>${nb(esc(e.nid))}</dd>`:""}
+      ${e.notes?`<dt>ملاحظات</dt><dd>${esc(e.notes)}</dd>`:""}
+    </dl></div>
+  <div class="stats">
+    <div class="stat"><small>رصيد الإجازة السنوية ${y}</small><b>${nb(leaveBalance(e,y))} يوم</b></div>
+    <div class="stat"><small>صافي ${y}</small><b>${money(s.net)}</b></div>
+    <div class="stat"><small>سلف ${y}</small><b>${money(s.adv)}</b></div>
+    <div class="stat"><small>إضافي ومكافآت ${y}</small><b>${money(s.otPay+s.bonus)}</b></div>
+  </div>
+  <div class="toolbar"><button class="btn" data-act="att-of:${e.id}">⏱️ الدوام</button><button class="btn" data-slip="${e.id}">🧾 القسيمة</button>
+    <button class="btn" data-act="add-leaves:${e.id}">🌴 إجازة</button><button class="btn" data-act="add-advances:${e.id}">💵 سلفة</button></div>
+  <div class="card"><h3>آخر الإجازات</h3>${lv.length?lv.map(l=>`<div class="person between" data-edit="leaves:${l.id}" style="cursor:pointer"><span>${esc(l.type)} · ${nb(esc(l.from))}${l.to&&l.to!==l.from?" ← "+nb(esc(l.to)):""}</span><span class="pill">${leaveDays(e.id,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></div>`).join(""):`<p class="muted">لا يوجد</p>`}</div>
+  <div class="card"><h3>آخر السلف</h3>${adv.length?adv.map(a=>`<div class="person between" data-edit="advances:${a.id}" style="cursor:pointer"><span>${nb(esc(a.date))} ${a.note?"· "+esc(a.note):""}</span><b>${money(num(a.amount))}</b></div>`).join(""):`<p class="muted">لا يوجد</p>`}</div>`;
+};
+
+views.more = () => `<div class="more-grid">
+  <button data-go="advances"><i>💵</i>السلف</button>
+  <button data-go="overtime"><i>⏫</i>الساعات الإضافية</button>
+  <button data-go="leaves"><i>🌴</i>الإجازات</button>
+  <button data-go="summary"><i>📊</i>الملخص السنوي</button>
+  <button data-go="settings"><i>⚙️</i>الإعدادات والنسخ الاحتياطي</button>
+</div>`;
+
+function recordList(kind){
+  if(!db.employees.length) return needEmp();
+  const isAdv = kind === "advances", prefix = ym(state.y,state.m);
+  const rows = db[kind].filter(r => r.date?.startsWith(prefix)).sort((a,b)=>a.date.localeCompare(b.date));
+  const total = rows.reduce((s,r)=>s+num(isAdv?r.amount:r.hours),0);
+  return `<div class="toolbar"><button class="btn sm" data-go="more">→</button>${monthPicker()}<span class="grow"></span><button class="btn primary" data-act="add-${kind}">➕ ${isAdv?"سلفة":"ساعات"}</button></div>
+  <div class="stats"><div class="stat"><small>${isAdv?"إجمالي السلف":"إجمالي الساعات"}</small><b>${isAdv?money(total):nb(fix(total))}</b></div>
+    <div class="stat"><small>عدد السجلات</small><b>${rows.length}</b></div></div>
+  ${rows.map(r=>`<div class="list-item" data-edit="${kind}:${r.id}"><div class="avatar">${initials(empName(r.empId))}</div>
+    <div class="info"><b>${esc(empName(r.empId))}</b><small>${nb(esc(r.date))} ${r.note?"· "+esc(r.note):""}</small></div>
+    <b>${isAdv?money(num(r.amount)):nb(fix(num(r.hours)))+" س"}</b></div>`).join("") || `<div class="card empty">لا توجد سجلات في هذا الشهر.</div>`}
+  ${!isAdv ? `<p class="note">الساعات السالبة تُخصم بنفس سعر الإضافي. يمكن أيضاً ترحيل الصافي من شاشة الدوام.</p>` : ""}`;
+}
+views.advances = () => recordList("advances");
+views.overtime = () => recordList("overtime");
+
+views.leaves = () => {
+  if(!db.employees.length) return needEmp();
+  const y = state.y, ys = Date.UTC(y,0,1), ye = Date.UTC(y,11,31);
+  const rows = db.leaves.filter(l => leaveDays(l.empId, ys, ye) && ((l.from||"").startsWith(y) || (l.to||"").startsWith(y))).sort((a,b)=>b.from.localeCompare(a.from));
+  return `<div class="toolbar"><button class="btn sm" data-go="more">→</button>${monthPicker(true)}<span class="grow"></span><button class="btn primary" data-act="add-leaves">➕ إجازة</button></div>
+  <div class="card"><h3 style="margin-bottom:6px">الأرصدة ${y} <span class="muted" style="font-size:13px">(السنوية: ${esc(db.settings.annualLeave)} يوم)</span></h3>
+  <div class="tbl-wrap"><table><thead><tr><th>الموظف</th><th>سنوية مستخدمة</th><th>الرصيد</th><th>مرضية</th><th>بدون راتب</th></tr></thead><tbody>
+  ${db.employees.filter(e=>isActive(e, `${y}-12-31`) || isActive(e, `${y}-01-01`)).map(e=>`<tr><td>${esc(e.name)}</td><td>${leaveDays(e.id,ys,ye,"سنوية")}</td><td><b class="${leaveBalance(e,y)<0?"neg":""}">${nb(leaveBalance(e,y))}</b></td><td>${leaveDays(e.id,ys,ye,"مرضية")}</td><td>${leaveDays(e.id,ys,ye,"بدون راتب")}</td></tr>`).join("")}
+  </tbody></table></div><p class="note">الإجازة «بدون راتب» تُخصم تلقائياً من راتب الشهر.</p></div>
+  ${rows.map(l=>`<div class="list-item" data-edit="leaves:${l.id}"><div class="avatar">${initials(empName(l.empId))}</div>
+    <div class="info"><b>${esc(empName(l.empId))}</b><small>${esc(l.type)} · ${nb(esc(l.from))}${l.to&&l.to!==l.from?" ← "+nb(esc(l.to)):""} ${l.note?"· "+esc(l.note):""}</small></div>
+    <span class="pill ${l.type==="بدون راتب"?"bad":""}">${leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></div>`).join("") || `<div class="card empty">لا توجد إجازات في ${y}.</div>`}`;
+};
 
 views.summary = () => {
+  if(!db.employees.length) return needEmp();
   const y = state.y;
-  const ys = new Set([y]); for(let i=new Date().getFullYear()-3;i<=new Date().getFullYear()+1;i++) ys.add(i);
   const rows = db.employees.map(e => {
-    const s = {base:0,absDays:0,lateHours:0,adv:0,otHours:0,otPay:0,deductions:0,net:0};
+    const s = {base:0,absDays:0,lateHours:0,adv:0,otHours:0,otPay:0,bonus:0,deductions:0,net:0};
     for(let m=1;m<=12;m++){ const p = calcPay(e,y,m); for(const k in s) s[k]+=p[k]; }
     return {e,s};
-  });
+  }).filter(r => r.s.base);
   const T = k => rows.reduce((a,r)=>a+r.s[k],0);
-  return `<div class="toolbar"><label>السنة<select data-ui="y">${[...ys].sort().map(v=>`<option ${v==y?"selected":""}>${v}</option>`).join("")}</select></label>
-    <button class="btn" data-act="export-year">⬇️ تصدير Excel للسنة</button></div>
-  ${!rows.length ? `<div class="card empty">لا يوجد موظفون.</div>` : `
-  <div class="tbl-wrap"><table><thead><tr><th>الموظف</th><th>تاريخ التوظيف</th><th>الراتب الشهري</th><th>إجمالي الأساسي</th><th>غياب (أيام)</th><th>تأخير (ساعات)</th><th>السلف</th><th>ساعات إضافي</th><th>أجر إضافي</th><th>الخصومات</th><th>صافي السنة</th></tr></thead><tbody>
-  ${rows.map(({e,s})=>`<tr><td>${esc(e.name)}</td><td>${esc(e.hire||"")}</td><td>${money(num(e.salary))}</td><td>${money(s.base)}</td><td>${nb(fix(s.absDays))}</td><td>${nb(fix(s.lateHours))}</td><td>${money(s.adv)}</td><td>${nb(fix(s.otHours))}</td><td>${money(s.otPay)}</td><td>${money(s.deductions)}</td><td><b>${money(s.net)}</b></td></tr>`).join("")}
-  </tbody><tfoot><tr><td>الإجمالي</td><td></td><td></td><td>${money(T("base"))}</td><td>${nb(fix(T("absDays")))}</td><td>${nb(fix(T("lateHours")))}</td><td>${money(T("adv"))}</td><td>${nb(fix(T("otHours")))}</td><td>${money(T("otPay"))}</td><td>${money(T("deductions"))}</td><td>${money(T("net"))}</td></tr></tfoot></table></div>`}`;
+  return `<div class="toolbar"><button class="btn sm" data-go="more">→</button>${monthPicker(true)}<span class="grow"></span><button class="btn sm" data-act="export-year">⬇️ Excel</button></div>
+  ${!rows.length ? `<div class="card empty">لا توجد رواتب في ${y}.</div>` : `
+  <div class="tbl-wrap"><table><thead><tr><th>الموظف</th><th>الأساسي</th><th>غياب</th><th>تأخير</th><th>السلف</th><th>إضافي (س)</th><th>أجر إضافي</th><th>مكافآت</th><th>الخصومات</th><th>صافي السنة</th></tr></thead><tbody>
+  ${rows.map(({e,s})=>`<tr><td>${esc(e.name)}</td><td>${money(s.base)}</td><td>${nb(fix(s.absDays))}</td><td>${nb(fix(s.lateHours))}</td><td>${money(s.adv)}</td><td>${nb(fix(s.otHours))}</td><td>${money(s.otPay)}</td><td>${money(s.bonus)}</td><td>${money(s.deductions)}</td><td><b>${money(s.net)}</b></td></tr>`).join("")}
+  </tbody><tfoot><tr><td>الإجمالي</td><td>${money(T("base"))}</td><td>${nb(fix(T("absDays")))}</td><td>${nb(fix(T("lateHours")))}</td><td>${money(T("adv"))}</td><td>${nb(fix(T("otHours")))}</td><td>${money(T("otPay"))}</td><td>${money(T("bonus"))}</td><td>${money(T("deductions"))}</td><td>${money(T("net"))}</td></tr></tfoot></table></div>`}`;
 };
 
 views.settings = () => {
   const S = db.settings;
-  return `<div class="card"><h2>إعدادات الحساب</h2><div class="row">
-    <label>العملة<input value="${esc(S.currency)}" data-set="currency"></label>
-    <label>أيام الشهر في الحساب<input type="number" value="${esc(S.monthDays)}" data-set="monthDays"></label>
-    <label>معامل أجر الإضافي<input type="number" step="0.05" value="${esc(S.otMultiplier)}" data-set="otMultiplier"></label>
-    <label>ساعات الدوام الافتراضية (حاسبة الدوام)<input type="time" value="${esc(S.attReq)}" data-set="attReq"></label>
-    <label>يوم العطلة الأسبوعية<select data-set="weekend">${WEEKDAYS.map((d,i)=>`<option value="${i}" ${i==S.weekend?"selected":""}>${d}</option>`).join("")}</select></label>
-  </div>
-  <p class="note">الراتب اليومي = الراتب ÷ أيام الشهر · خصم التأخير = الراتب اليومي ÷ ساعات العمل × ساعات التأخير · أجر الإضافي = نفس سعر الساعة × المعامل · الصافي = الأساسي − (غياب + تأخير + سلف) + الإضافي.</p></div>
+  return `<div class="toolbar"><button class="btn sm" data-go="more">→ رجوع</button></div>
+  <div class="card"><h2>إعدادات عامة</h2>
+    <label>اسم المنشأة (يظهر في القسيمة)<input value="${esc(S.company)}" data-set="company"></label>
+    <div class="row" style="margin-top:10px">
+      <label>العملة<input value="${esc(S.currency)}" data-set="currency"></label>
+      <label>أيام الشهر في الحساب<input type="number" inputmode="numeric" value="${esc(S.monthDays)}" data-set="monthDays"></label>
+      <label>معامل أجر الإضافي<input type="number" inputmode="decimal" step="0.05" value="${esc(S.otMultiplier)}" data-set="otMultiplier"></label>
+      <label>الضمان الاجتماعي % (0 = بدون)<input type="number" inputmode="decimal" step="0.25" value="${esc(S.ssPct)}" data-set="ssPct"></label>
+      <label>الإجازة السنوية (يوم)<input type="number" inputmode="numeric" value="${esc(S.annualLeave)}" data-set="annualLeave"></label>
+      <label>يوم العطلة الأسبوعية<select data-set="weekend">${WEEKDAYS.map((d,i)=>`<option value="${i}" ${i==S.weekend?"selected":""}>${d}</option>`).join("")}</select></label>
+    </div></div>
+  <div class="card"><h2>الدوام</h2><div class="row">
+      <label>الساعات المطلوبة يومياً<input type="time" value="${esc(S.attReq)}" data-set="attReq"></label>
+      <label>وقت الحضور المعتاد<input type="time" value="${esc(S.defIn)}" data-set="defIn"></label>
+      <label>وقت الانصراف المعتاد<input type="time" value="${esc(S.defOut)}" data-set="defOut"></label>
+    </div><p class="note">الأوقات المعتادة تُستخدم في «التعبئة السريعة» وتظهر مقترحة عند إدخال يوم جديد.</p></div>
   <div class="card"><h2>النسخ الاحتياطي</h2>
     <p class="muted" style="margin-top:0">البيانات محفوظة على هذا الجهاز فقط. احفظ نسخة احتياطية بانتظام أو انقلها لجهاز آخر.</p>
-    <div class="row"><button class="btn primary" data-act="backup">💾 حفظ نسخة احتياطية</button>
+    <div class="row"><button class="btn primary" data-act="backup">💾 حفظ نسخة</button>
       <label class="btn" style="flex:0 0 auto;color:var(--ink)">📂 استعادة نسخة<input type="file" accept=".json,application/json" data-act-file="restore" hidden></label>
-      <button class="btn" data-act="export-all">⬇️ تصدير كل البيانات Excel</button>
-      <button class="btn danger" data-act="wipe">🗑️ حذف كل البيانات</button></div></div>`;
+      <button class="btn" data-act="export-all">⬇️ تصدير Excel</button>
+      <button class="btn danger" data-act="wipe">🗑️ حذف الكل</button></div></div>
+  <p class="note">الراتب اليومي = الراتب ÷ أيام الشهر · خصم التأخير = الراتب اليومي ÷ ساعات العمل × ساعات التأخير · أجر الإضافي = نفس سعر الساعة × المعامل · الصافي = الأساسي − الخصومات + الإضافي + المكافآت.</p>`;
 };
 
-/* ========== النوافذ ========== */
-function openDialog(html, onSubmit){
+/* ========== النوافذ (لا يُعاد رسم الصفحة أثناء الإدخال، فلا يُغلق منتقي الوقت) ========== */
+function openDialog(html, onSubmit, extraButtons=""){
   const d = $("#dlg");
-  d.innerHTML = `<form method="dialog">${html}<div class="actions"><button class="btn primary" value="ok">حفظ</button><button class="btn" value="cancel" formnovalidate>إلغاء</button></div></form>`;
+  d.innerHTML = `<form method="dialog" novalidate>${html}<div class="actions"><button class="btn primary" value="ok">حفظ</button>${extraButtons}<button class="btn" value="cancel">إلغاء</button></div></form>`;
   const f = d.querySelector("form");
   f.onsubmit = ev => {
-    if(ev.submitter?.value !== "ok") return;
+    const v = ev.submitter?.value;
+    if(v === "cancel" || !v) return;
+    if(v === "ok" && !f.checkValidity()){ ev.preventDefault(); f.reportValidity(); return; }
     const data = Object.fromEntries(new FormData(f));
-    if(onSubmit(data) === false) ev.preventDefault();
+    f.querySelectorAll("input[type=checkbox][name]").forEach(c => data[c.name] = c.checked);
+    if(onSubmit(data, v) === false) ev.preventDefault();
   };
+  d.onclick = ev => { if(ev.target === d) d.close(); };
   d.showModal();
-  d.querySelector("input,select")?.focus();
+  return f;
 }
+const timeField = (label, name, val) => `<div class="f"><label>${label}</label><div class="time-wrap"><input type="time" name="${name}" value="${esc(val||"")}"><button type="button" class="btn sm" data-now="${name}">الآن</button></div></div>`;
+$("#dlg").addEventListener("click", e => {
+  const b = e.target.closest("[data-now]");
+  if(b){ const inp = b.closest("form").elements[b.dataset.now]; inp.value = nowHM(); inp.dispatchEvent(new Event("change",{bubbles:true})); }
+});
+
 function editEmployee(id){
   const e = id ? empById(id) : {hours:8};
   openDialog(`<h3>${id?"تعديل موظف":"موظف جديد"}</h3>
-    <label>اسم الموظف<input name="name" required value="${esc(e.name||"")}"></label>
+    <label>اسم الموظف<input name="name" required value="${esc(e.name||"")}" autocomplete="off"></label>
     <div class="row"><label>المسمى الوظيفي<input name="title" value="${esc(e.title||"")}"></label>
       <label>تاريخ التوظيف<input type="date" name="hire" required value="${esc(e.hire||"")}"></label></div>
     <div class="row"><label>الراتب الشهري<input type="number" step="0.01" inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
-      <label>ساعات العمل اليومية<input type="number" step="0.5" name="hours" required value="${esc(e.hours??8)}"></label></div>
-    <div class="row"><label>تاريخ انتهاء الخدمة (اختياري)<input type="date" name="endDate" value="${esc(e.endDate||"")}"></label>
-      <label>سبب الإنهاء<select name="endReason"><option value=""></option>${END_REASONS.map(r=>`<option ${r===e.endReason?"selected":""}>${r}</option>`).join("")}</select></label></div>`,
+      <label>ساعات العمل اليومية<input type="number" step="0.5" inputmode="decimal" name="hours" required value="${esc(e.hours??8)}"></label></div>
+    <div class="row"><label>الهاتف<input type="tel" name="phone" value="${esc(e.phone||"")}"></label>
+      <label>الرقم الوطني<input inputmode="numeric" name="nid" value="${esc(e.nid||"")}"></label></div>
+    <details ${e.endDate?"open":""}><summary>إنهاء الخدمة وملاحظات</summary>
+    <div class="row"><label>تاريخ انتهاء الخدمة<input type="date" name="endDate" value="${esc(e.endDate||"")}"></label>
+      <label>سبب الإنهاء<select name="endReason"><option value=""></option>${END_REASONS.map(r=>`<option ${r===e.endReason?"selected":""}>${r}</option>`).join("")}</select></label></div>
+    <label>ملاحظات<textarea name="notes" rows="2">${esc(e.notes||"")}</textarea></label></details>`,
   d => {
     d.name = d.name.trim(); if(!d.name) return false;
     if(!d.endDate) d.endReason = "";
-    if(id) Object.assign(empById(id), d); else db.employees.push({id:uid(), ...d});
+    if(id) Object.assign(empById(id), d); else { const n = {id:uid(), ...d}; db.employees.push(n); if(!state.attEmp) state.attEmp = n.id; }
     save(); render(); toast("تم الحفظ");
   });
 }
-function editRecord(kind, id){
-  const isAdv = kind === "advances";
-  const r = id ? db[kind].find(x=>x.id===id) : { date: state.y===new Date().getFullYear() && state.m===new Date().getMonth()+1 ? today() : ym(state.y,state.m)+"-01" };
-  openDialog(`<h3>${isAdv?(id?"تعديل سلفة":"سلفة جديدة"):(id?"تعديل ساعات إضافية":"ساعات إضافية")}</h3>
+
+function editRecord(kind, id, empId){
+  const T = {advances:["سلفة","المبلغ","amount","0.01"], overtime:["ساعات إضافية","عدد الساعات (سالب للنقص)","hours","0.25"]}[kind];
+  const isCur = state.y===now().getFullYear() && state.m===now().getMonth()+1;
+  const r = id ? db[kind].find(x=>x.id===id) : { empId, date: isCur || !["advances","overtime"].includes(state.tab) ? today() : ym(state.y,state.m)+"-01" };
+  openDialog(`<h3>${id?"تعديل ":""}${T[0]}</h3>
     <label>الموظف<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
     <div class="row"><label>التاريخ<input type="date" name="date" required value="${esc(r.date||"")}"></label>
-      <label>${isAdv?"المبلغ":"عدد الساعات"}<input type="number" step="${isAdv?"0.01":"0.25"}" inputmode="decimal" name="${isAdv?"amount":"hours"}" required value="${esc((isAdv?r.amount:r.hours)??"")}"></label></div>
-    <label>${isAdv?"السبب / ملاحظات":"ملاحظات"}<input name="note" value="${esc(r.note||"")}"></label>`,
-  d => {
+      <label>${T[1]}<input type="number" step="${T[3]}" inputmode="decimal" name="${T[2]}" required value="${esc(r[T[2]]??"")}"></label></div>
+    <label>ملاحظات<input name="note" value="${esc(r.note||"")}"></label>`,
+  (d, v) => {
+    snapshot();
+    if(v === "del"){ db[kind] = db[kind].filter(x=>x.id!==id); save(); render(); return toast("تم الحذف", true); }
     if(id) Object.assign(db[kind].find(x=>x.id===id), d); else db[kind].push({id:uid(), ...d});
     save(); render(); toast("تم الحفظ");
+  }, id ? `<button class="btn danger" value="del">حذف</button>` : "");
+}
+
+function editLeave(id, empId){
+  const r = id ? db.leaves.find(x=>x.id===id) : { empId, from: today(), to: today(), type:"سنوية" };
+  const f = openDialog(`<h3>${id?"تعديل إجازة":"إجازة جديدة"}</h3>
+    <label>الموظف<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
+    <label>نوع الإجازة<select name="type">${LEAVE_TYPES.map(t=>`<option ${t===r.type?"selected":""}>${t}</option>`).join("")}</select></label>
+    <div class="row"><label>من<input type="date" name="from" required value="${esc(r.from||"")}"></label>
+      <label>إلى<input type="date" name="to" required value="${esc(r.to||r.from||"")}"></label></div>
+    <p class="note" id="lvInfo"></p>
+    <label>ملاحظات<input name="note" value="${esc(r.note||"")}"></label>`,
+  (d, v) => {
+    snapshot();
+    if(v === "del"){ db.leaves = db.leaves.filter(x=>x.id!==id); save(); render(); return toast("تم الحذف", true); }
+    if(d.to < d.from) d.to = d.from;
+    if(id) Object.assign(db.leaves.find(x=>x.id===id), d); else db.leaves.push({id:uid(), ...d});
+    save(); render(); toast("تم الحفظ");
+  }, id ? `<button class="btn danger" value="del">حذف</button>` : "");
+  const upd = ev => {
+    if(ev?.target === f.from && f.from.value && (!f.to.value || f.to.value < f.from.value)) f.to.value = f.from.value;
+    const a = parseDate(f.from.value), b = parseDate(f.to.value), e = empById(f.empId.value);
+    const n = a!=null && b!=null && b>=a ? Math.round((b-a)/DAY)+1 : 0;
+    $("#lvInfo").innerHTML = `${n} يوم` + (e && f.type.value==="سنوية" ? ` · الرصيد الحالي ${nb(leaveBalance(e, +f.from.value.slice(0,4) || now().getFullYear()))} يوم` : "");
+  };
+  f.addEventListener("change", upd); upd();
+}
+
+function editPay(empId){
+  const e = empById(empId), {y,m} = state, rec = db.payroll[ym(y,m)]?.[empId] || {};
+  openDialog(`<h3>${esc(e.name)} — ${MONTHS[m-1]} ${y}</h3>
+    <div class="row"><label>أيام غياب<input type="number" inputmode="decimal" step="0.5" min="0" name="absDays" value="${esc(rec.absDays||"")}"></label>
+      <label>ساعات تأخير<input type="number" inputmode="decimal" step="0.25" min="0" name="lateHours" value="${esc(rec.lateHours||"")}"></label></div>
+    <div class="row"><label>مكافآت / علاوات<input type="number" inputmode="decimal" step="0.01" name="bonus" value="${esc(rec.bonus||"")}"></label>
+      <label>خصومات أخرى<input type="number" inputmode="decimal" step="0.01" name="otherDed" value="${esc(rec.otherDed||"")}"></label></div>
+    <label>ملاحظة<input name="note" value="${esc(rec.note||"")}"></label>
+    <p class="note">السلف والساعات الإضافية والإجازات بدون راتب تُحسب تلقائياً من سجلاتها.</p>`,
+  d => { Object.assign(((db.payroll[ym(y,m)] ||= {})[empId] ||= {}), d); save(); render(); toast("تم الحفظ"); });
+}
+
+function editDay(empId, d){
+  const {y,m} = state, emp = empById(empId), sheet = attSheet(empId,y,m), r = sheet.days?.[d] || {};
+  const wd = new Date(Date.UTC(y,m-1,d)).getUTCDay(), fresh = !r.in && !r.out;
+  const prev = (() => { for(let i=d-1;i>=1;i--){ const p = sheet.days?.[i]; if(p?.in && p?.out) return p; } return null; })();
+  const f = openDialog(`<h3>${esc(emp.name)} — ${WEEKDAYS[wd]} ${d} ${MONTHS[m-1]}</h3>
+    <div class="row">${timeField("الحضور","in", r.in || (fresh ? db.settings.defIn : ""))}${timeField("الانصراف","out", r.out || (fresh ? db.settings.defOut : ""))}</div>
+    <label class="check"><input type="checkbox" name="holiday" ${r.holiday?"checked":""}> عطلة (لا ساعات مطلوبة)</label>
+    <p class="note" id="dayInfo"></p>
+    <details ${r.lf||r.lt||r.lm||r.req?"open":""}><summary>مغادرة مؤقتة وتعديل الساعات المطلوبة</summary>
+      <div class="row">${timeField("مغادرة من","lf",r.lf)}${timeField("عودة","lt",r.lt)}</div>
+      <div class="row"><label>مدة مغادرة (يدوي)<input type="time" name="lm" value="${esc(r.lm||"")}"></label>
+        <label>المطلوبة لهذا اليوم<input type="time" name="req" value="${esc(r.req||"")}"></label></div>
+    </details>
+    ${prev ? `<button type="button" class="btn sm block" id="copyPrev" style="margin-top:8px">↩︎ مثل آخر يوم (${nb(prev.in)} ← ${nb(prev.out)})</button>` : ""}`,
+  (data, v) => {
+    const sh = attSheet(empId,y,m,true); sh.days ||= {};
+    if(v === "clear") delete sh.days[d];
+    else sh.days[d] = {in:data.in, out:data.out, holiday:data.holiday, lf:data.lf, lt:data.lt, lm:data.lm, req:data.req};
+    save(); render(); toast(v === "clear" ? "تم مسح اليوم" : "تم الحفظ");
+  }, `<button class="btn danger" value="clear">مسح اليوم</button>`);
+  const info = () => {
+    const c = calcDay(sheet, {in:f.in.value, out:f.out.value, holiday:f.holiday.checked, lf:f.lf.value, lt:f.lt.value, lm:f.lm.value, req:f.req.value});
+    $("#dayInfo").innerHTML = c ? `الفعلية ${hm(c.actual)} · المطلوبة ${hm(c.req)} · ${c.over?`<span class="pos">زيادة ${hm(c.over)}</span>`:c.short?`<span class="neg">نقص ${hm(c.short)}</span>`:"مطابق"}` : "أدخل الحضور والانصراف";
+  };
+  f.addEventListener("input", info); f.addEventListener("change", info);
+  $("#copyPrev")?.addEventListener("click", () => { f.in.value = prev.in; f.out.value = prev.out; info(); });
+  info();
+}
+
+function attSettings(){
+  const {y,m} = state, emp = empById(state.attEmp), sheet = attSheet(emp.id,y,m);
+  openDialog(`<h3>دوام ${esc(emp.name)} — ${MONTHS[m-1]}</h3>
+    <div class="row"><label>الساعات المطلوبة يومياً<input type="time" name="req" value="${esc(sheet.req || db.settings.attReq)}"></label>
+      <label>سعر الساعة الإضافية<input type="number" step="0.01" inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${fix(otRateFor(emp)).toFixed(2)} تلقائي"></label></div>
+    <p class="note">اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ ${db.settings.monthDays} ÷ ساعات العمل × ${db.settings.otMultiplier}.</p>`,
+  d => { Object.assign(attSheet(emp.id,y,m,true), d); save(); render(); toast("تم الحفظ"); });
+}
+
+function quickFill(){
+  const {y,m} = state, emp = empById(state.attEmp), nd = daysInMonth(y,m);
+  const isCur = y===now().getFullYear() && m===now().getMonth()+1;
+  openDialog(`<h3>تعبئة سريعة — ${esc(emp.name)}</h3>
+    <div class="row">${timeField("الحضور","in",db.settings.defIn)}${timeField("الانصراف","out",db.settings.defOut)}</div>
+    <div class="row"><label>من يوم<input type="number" inputmode="numeric" name="from" min="1" max="${nd}" value="1"></label>
+      <label>إلى يوم<input type="number" inputmode="numeric" name="to" min="1" max="${nd}" value="${isCur ? now().getDate() : nd}"></label></div>
+    <label class="check"><input type="checkbox" name="skipWeekend" checked> تخطّي يوم ${WEEKDAYS[db.settings.weekend]}</label>
+    <label class="check"><input type="checkbox" name="onlyEmpty" checked> الأيام الفارغة فقط</label>
+    <label class="check"><input type="checkbox" name="remember" checked> حفظها كأوقات معتادة</label>
+    <p class="note">أيام الإجازات المسجّلة تُتخطّى تلقائياً. يمكنك بعدها تعديل أي يوم بالضغط عليه.</p>`,
+  d => {
+    if(!d.in || !d.out){ toast("أدخل الحضور والانصراف"); return false; }
+    const sh = attSheet(emp.id,y,m,true); sh.days ||= {}; let n = 0;
+    for(let i=Math.max(1,+d.from); i<=Math.min(nd,+d.to); i++){
+      const wd = new Date(Date.UTC(y,m-1,i)).getUTCDay();
+      if(d.skipWeekend && wd==db.settings.weekend) continue;
+      if(onLeaveOn(emp.id, `${ym(y,m)}-${pad(i)}`)) continue;
+      const cur = sh.days[i];
+      if(d.onlyEmpty && (cur?.in || cur?.out || cur?.holiday)) continue;
+      sh.days[i] = {...(cur||{}), in:d.in, out:d.out}; n++;
+    }
+    if(d.remember){ db.settings.defIn = d.in; db.settings.defOut = d.out; }
+    save(); render(); toast(`تمت تعبئة ${n} يوم`);
   });
+}
+
+/* ========== قسيمة الراتب ========== */
+function slipHTML(e, y, m){
+  const p = calcPay(e,y,m), S = db.settings;
+  const L = (t,v) => `<dt>${t}</dt><dd>${money(v)}</dd>`;
+  const ded = [p.absDed?L(`غياب (${fix(p.absDays)} يوم)`,p.absDed):"", p.unpaidDed?L(`إجازة بدون راتب (${p.unpaidDays} يوم)`,p.unpaidDed):"",
+    p.lateDed?L(`تأخير (${fix(p.lateHours)} س)`,p.lateDed):"", p.adv?L("سلف",p.adv):"", p.otherDed?L("خصومات أخرى",p.otherDed):"",
+    p.ss?L(`الضمان الاجتماعي ${S.ssPct}%`,p.ss):"", p.otPay<0?L(`نقص ساعات (${fix(-p.otHours)} س)`,-p.otPay):""].join("");
+  return `<div class="slip card">
+    <h2>قسيمة راتب</h2><div class="sub">${esc(S.company||"")}${S.company?" · ":""}${MONTHS[m-1]} ${y}</div>
+    <dl><dt>الموظف</dt><dd>${esc(e.name)}</dd><dt>المسمى</dt><dd>${esc(e.title||"—")}</dd><dt>أيام الاستحقاق</dt><dd>${p.days}</dd></dl>
+    <h3>المستحقات</h3><dl>${L("الراتب الأساسي",p.base)}${p.otPay>0?L(`إضافي (${fix(p.otHours)} س)`,p.otPay):""}${p.bonus?L("مكافآت وعلاوات",p.bonus):""}</dl>
+    <h3>الاستقطاعات</h3><dl>${ded || `<dt>لا يوجد</dt><dd></dd>`}</dl>
+    <div class="net"><span>صافي الراتب</span><span>${money(p.net)}</span></div>
+    ${p.note?`<p class="note">${esc(p.note)}</p>`:""}
+    ${p.delivered?`<p class="note">تم التسليم بتاريخ ${esc(p.deliveredDate)}</p>`:""}
+    <p class="note" style="margin-top:28px">توقيع الموظف: ____________ &nbsp;&nbsp; توقيع الإدارة: ____________</p></div>`;
+}
+function slipText(e,y,m){
+  const p = calcPay(e,y,m), S = db.settings, L = [];
+  L.push(`قسيمة راتب ${MONTHS[m-1]} ${y}${S.company?" — "+S.company:""}`, `الموظف: ${e.name}`, `الراتب الأساسي: ${moneyText(p.base)}`);
+  if(p.otPay) L.push(`الإضافي: ${moneyText(p.otPay)}`);
+  if(p.bonus) L.push(`مكافآت: ${moneyText(p.bonus)}`);
+  if(p.deductions) L.push(`الخصومات: ${moneyText(p.deductions)}${p.adv?` (منها سلف ${moneyText(p.adv)})`:""}`);
+  L.push(`الصافي: ${moneyText(p.net)}`);
+  return L.join("\n");
+}
+function showSlip(empId){
+  const e = empById(empId), {y,m} = state, d = $("#dlg");
+  d.innerHTML = `<form method="dialog">${slipHTML(e,y,m)}<div class="actions">
+    <button class="btn primary" type="button" id="slipPrint">🖨️ طباعة / PDF</button>
+    <button class="btn" type="button" id="slipShare">📤 مشاركة</button><button class="btn" value="cancel">إغلاق</button></div></form>`;
+  d.onclick = ev => { if(ev.target === d) d.close(); };
+  d.showModal();
+  $("#slipPrint").onclick = () => { $("#print").innerHTML = slipHTML(e,y,m); d.close(); document.body.classList.add("printing"); setTimeout(()=>{ print(); document.body.classList.remove("printing"); }, 50); };
+  $("#slipShare").onclick = async () => {
+    const text = slipText(e,y,m);
+    if(navigator.share){ try{ await navigator.share({text}); }catch(err){} }
+    else { try{ await navigator.clipboard.writeText(text); toast("تم النسخ"); }catch(err){ toast("تعذّر النسخ"); } }
+  };
 }
 
 /* ========== Excel ========== */
@@ -413,8 +751,9 @@ function loadXLSX(){
   if(window.XLSX) return Promise.resolve();
   return xlsxLoading ||= new Promise((ok,fail)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=ok; s.onerror=()=>{xlsxLoading=null;fail();}; document.head.appendChild(s); });
 }
-const payRow = (e,y,m,p) => ({"الموظف":e.name,"الشهر":MONTHS[m-1],"السنة":y,"الراتب الشهري":num(e.salary),"أيام الاستحقاق":p.days,"الراتب الأساسي":fix(p.base),"أيام غياب/إجازة":p.absDays,"ساعات تأخير":p.lateHours,"خصم غياب":fix(p.absDed),"خصم تأخير":fix(p.lateDed),"سلفة":fix(p.adv),"ساعات إضافي":fix(p.otHours),"أجر إضافي":fix(p.otPay),"إجمالي الخصومات":fix(p.deductions),"الصافي":fix(p.net),"تم التسليم":p.delivered?"✓":"","تاريخ التسليم":p.deliveredDate});
+const payRow = (e,y,m,p) => ({"الموظف":e.name,"الشهر":MONTHS[m-1],"السنة":y,"الراتب الشهري":num(e.salary),"أيام الاستحقاق":p.days,"الراتب الأساسي":fix(p.base),"أيام غياب":p.absDays,"خصم غياب":fix(p.absDed),"إجازة بدون راتب (يوم)":p.unpaidDays,"خصمها":fix(p.unpaidDed),"ساعات تأخير":p.lateHours,"خصم تأخير":fix(p.lateDed),"سلفة":fix(p.adv),"خصومات أخرى":fix(p.otherDed),"الضمان":fix(p.ss),"ساعات إضافي":fix(p.otHours),"أجر إضافي":fix(p.otPay),"مكافآت":fix(p.bonus),"إجمالي الخصومات":fix(p.deductions),"الصافي":fix(p.net),"تم التسليم":p.delivered?"✓":"","تاريخ التسليم":p.deliveredDate,"ملاحظة":p.note});
 async function exportXlsx(kind){
+  toast("جارٍ التجهيز…");
   try{ await loadXLSX(); }catch(e){ return toast("تعذّر تحميل مكتبة Excel — تحقق من الاتصال"); }
   const wb = XLSX.utils.book_new(), add = (rows,name) => { const ws = XLSX.utils.json_to_sheet(rows.length?rows:[{}]); ws["!views"]=[{RTL:true}]; XLSX.utils.book_append_sheet(wb, ws, name); };
   const {y,m} = state; let file;
@@ -422,16 +761,15 @@ async function exportXlsx(kind){
     add(empsForMonth(y,m).map(e=>payRow(e,y,m,calcPay(e,y,m))), "الرواتب");
     file = `رواتب-${MONTHS[m-1]}-${y}.xlsx`;
   }else{
-    const years = kind==="year" ? [y] : [...new Set([...db.advances,...db.overtime].map(r=>+r.date?.slice(0,4)).filter(Boolean).concat(y))].sort();
-    add(db.employees.map((e,i)=>({"رقم":i+1,"اسم الموظف":e.name,"المسمى الوظيفي":e.title||"","تاريخ التوظيف":e.hire,"الراتب الشهري":num(e.salary),"ساعات العمل اليومية":num(e.hours),"تاريخ انتهاء الخدمة":e.endDate||"","سبب الإنهاء":e.endDate?(e.endReason||""):"نشط"})), "الموظفين");
+    const yearOf = r => +(r.date||r.from||"").slice(0,4);
+    const years = kind==="year" ? [y] : [...new Set([...db.advances,...db.overtime,...db.leaves].map(yearOf).filter(Boolean).concat(y))].sort();
+    add(db.employees.map((e,i)=>({"رقم":i+1,"اسم الموظف":e.name,"المسمى الوظيفي":e.title||"","تاريخ التوظيف":e.hire,"الراتب الشهري":num(e.salary),"ساعات العمل اليومية":num(e.hours),"الهاتف":e.phone||"","الرقم الوطني":e.nid||"","تاريخ انتهاء الخدمة":e.endDate||"","سبب الإنهاء":e.endDate?(e.endReason||""):"نشط"})), "الموظفين");
     const pr = []; for(const yy of years) for(let mm=1;mm<=12;mm++) for(const e of empsForMonth(yy,mm)) pr.push(payRow(e,yy,mm,calcPay(e,yy,mm)));
     add(pr, "الرواتب");
-    add(db.employees.map(e=>{ const s={"الموظف":e.name,"الأساسي":0,"الغياب":0,"التأخير":0,"السلف":0,"ساعات إضافي":0,"أجر إضافي":0,"الخصومات":0,"الصافي":0};
-      for(const yy of years) for(let mm=1;mm<=12;mm++){ const p=calcPay(e,yy,mm); s["الأساسي"]+=p.base; s["الغياب"]+=p.absDays; s["التأخير"]+=p.lateHours; s["السلف"]+=p.adv; s["ساعات إضافي"]+=p.otHours; s["أجر إضافي"]+=p.otPay; s["الخصومات"]+=p.deductions; s["الصافي"]+=p.net; }
-      for(const k in s) if(typeof s[k]==="number") s[k]=fix(s[k]); return s; }), "الملخص");
-    const inYears = r => years.includes(+r.date?.slice(0,4));
-    add(db.advances.filter(inYears).map(r=>({"الموظف":empName(r.empId),"التاريخ":r.date,"المبلغ":num(r.amount),"السبب / ملاحظات":r.note||""})), "السلف");
+    const inYears = r => years.includes(yearOf(r));
+    add(db.advances.filter(inYears).map(r=>({"الموظف":empName(r.empId),"التاريخ":r.date,"المبلغ":num(r.amount),"ملاحظات":r.note||""})), "السلف");
     add(db.overtime.filter(inYears).map(r=>({"الموظف":empName(r.empId),"التاريخ":r.date,"ساعات إضافية":num(r.hours),"ملاحظات":r.note||""})), "الإضافي");
+    add(db.leaves.filter(inYears).map(l=>({"الموظف":empName(l.empId),"النوع":l.type,"من":l.from,"إلى":l.to||l.from,"الأيام":leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from)),"ملاحظات":l.note||""})), "الإجازات");
     file = kind==="year" ? `رواتب-${y}.xlsx` : `رواتب-كل-البيانات.xlsx`;
   }
   XLSX.writeFile(wb, file);
@@ -440,78 +778,103 @@ function download(name, text){
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text],{type:"application/json"})); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 }
 
-/* ========== الأحداث ========== */
+/* ========== التنقل والأحداث ========== */
+const TAB_OF = {advances:"more", overtime:"more", leaves:"more", summary:"more", settings:"more", profile:"employees"};
 function render(){
-  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===state.tab));
+  if(!views[state.tab]) state.tab = "home";
+  const tab = TAB_OF[state.tab] || state.tab;
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===tab));
   $("#view").innerHTML = views[state.tab]();
+  const d = now(); $("#hdrDate").textContent = `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
   keepUI();
 }
-$("#tabs").onclick = e => { const t = e.target.closest("button")?.dataset.tab; if(t){ state.tab = t; render(); window.scrollTo(0,0); } };
+function go(tab){ state.tab = tab; render(); window.scrollTo(0,0); }
+$("#tabs").onclick = e => { const t = e.target.closest("button")?.dataset.tab; if(t) go(t); };
 
+$("#view").addEventListener("input", e => {
+  // البحث يحدّث القائمة فقط دون إعادة رسم حقل البحث (يبقى الكيبورد مفتوحاً)
+  if(e.target.matches("[data-search]")){ state.q = e.target.value; $("#empList").innerHTML = empListHTML(); keepUI(); }
+});
 $("#view").addEventListener("change", e => {
   const t = e.target, ds = t.dataset;
-  if(ds.ui){ state[ds.ui] = ds.ui==="attEmp" ? t.value : +t.value; return render(); }
-  if(ds.pay){
-    const k = ym(state.y,state.m); (db.payroll[k] ||= {}); (db.payroll[k][ds.emp] ||= {})[ds.pay] = t.value;
-    save(); return render();
-  }
   if(ds.deliver){
-    const k = ym(state.y,state.m); const r = ((db.payroll[k] ||= {})[ds.deliver] ||= {});
+    const r = ((db.payroll[ym(state.y,state.m)] ||= {})[ds.deliver] ||= {});
     r.delivered = t.checked; r.deliveredDate = t.checked ? today() : "";
     save(); return render();
   }
-  if(ds.att || ds.attset){
-    const key = `${state.attEmp}|${ym(state.y,state.m)}`, sh = (db.attendance[key] ||= {});
-    if(ds.attset) sh[ds.attset] = t.value;
-    else { const d = ((sh.days ||= {})[ds.day] ||= {}); d[ds.att] = t.type==="checkbox" ? t.checked : t.value; }
-    save(); const y = window.scrollY; render(); window.scrollTo(0,y); return;
-  }
   if(ds.set){ db.settings[ds.set] = t.type==="number" || ds.set==="weekend" ? num(t.value) : t.value; save(); return toast("تم الحفظ"); }
-  if(t.dataset.actFile === "restore" && t.files[0]){
+  if(ds.actFile === "restore" && t.files[0]){
     t.files[0].text().then(txt => {
       try{ const d = JSON.parse(txt); if(!Array.isArray(d.employees)) throw 0;
         if(!confirm("سيتم استبدال البيانات الحالية بالنسخة الاحتياطية. متابعة؟")) return;
-        db = {...structuredClone(DEFAULTS), ...d, settings:{...DEFAULTS.settings, ...(d.settings||{})}}; save(); render(); toast("تمت الاستعادة");
+        db = normalize(d); save(); render(); toast("تمت الاستعادة");
       }catch(err){ toast("ملف غير صالح"); }
     });
   }
 });
 
 $("#view").addEventListener("click", e => {
-  const b = e.target.closest("[data-act],[data-edit],[data-del],[data-go]"); if(!b) return;
-  if(b.dataset.go){ state.tab = b.dataset.go; return render(); }
-  if(b.dataset.edit){ const [k,id] = b.dataset.edit.split(":"); return k==="employees" ? editEmployee(id) : editRecord(k,id); }
-  if(b.dataset.del){
-    const [k,id] = b.dataset.del.split(":");
-    if(k==="employees"){
-      if(!confirm(`حذف الموظف «${empName(id)}» وكل سجلاته (السلف، الإضافي، الدوام، الرواتب)؟`)) return;
-      db.employees = db.employees.filter(x=>x.id!==id);
-      db.advances = db.advances.filter(x=>x.empId!==id); db.overtime = db.overtime.filter(x=>x.empId!==id);
-      for(const k2 in db.payroll) delete db.payroll[k2][id];
-      for(const k2 in db.attendance) if(k2.startsWith(id+"|")) delete db.attendance[k2];
-    }else{ if(!confirm("حذف هذا السجل؟")) return; db[k] = db[k].filter(x=>x.id!==id); }
-    save(); return render();
+  const b = e.target.closest("[data-act],[data-edit],[data-del],[data-go],[data-mstep],[data-att-emp],[data-day-edit],[data-punch],[data-pay-edit],[data-slip],[data-profile]");
+  if(!b) return;
+  const ds = b.dataset;
+  if(ds.go) return go(ds.go);
+  if(ds.mstep){
+    if(["leaves","summary"].includes(state.tab)) state.y += +ds.mstep;
+    else { state.m += +ds.mstep; if(state.m>12){state.m=1;state.y++;} if(state.m<1){state.m=12;state.y--;} }
+    return render();
   }
-  switch(b.dataset.act){
+  if(ds.attEmp){ state.attEmp = ds.attEmp; return render(); }
+  if(ds.dayEdit){
+    const [id,d] = ds.dayEdit.split("|");
+    if(state.tab === "home"){ state.y = now().getFullYear(); state.m = now().getMonth()+1; }
+    return editDay(id, +d);
+  }
+  if(ds.punch){
+    const [kind,id] = ds.punch.split("|"), d = now();
+    const sh = attSheet(id,d.getFullYear(),d.getMonth()+1,true); sh.days ||= {};
+    (sh.days[d.getDate()] ||= {})[kind] = nowHM();
+    save(); render(); return toast(kind==="in" ? `تم تسجيل حضور ${empName(id)}` : `تم تسجيل انصراف ${empName(id)}`);
+  }
+  if(ds.payEdit) return editPay(ds.payEdit);
+  if(ds.slip){ if(state.tab === "profile"){ state.y = now().getFullYear(); state.m = now().getMonth()+1; } return showSlip(ds.slip); }
+  if(ds.profile){ state.profile = ds.profile; return go("profile"); }
+  if(ds.edit){
+    const [k,id] = ds.edit.split(":");
+    return k==="employees" ? editEmployee(id) : k==="leaves" ? editLeave(id) : editRecord(k,id);
+  }
+  if(ds.del){
+    const id = ds.del.split(":")[1];
+    if(!confirm(`حذف الموظف «${empName(id)}» وكل سجلاته؟`)) return;
+    snapshot();
+    db.employees = db.employees.filter(x=>x.id!==id);
+    for(const k of ["advances","overtime","leaves"]) db[k] = db[k].filter(x=>x.empId!==id);
+    for(const k in db.payroll) delete db.payroll[k][id];
+    for(const k in db.attendance) if(k.startsWith(id+"|")) delete db.attendance[k];
+    save(); go("employees"); return toast("تم حذف الموظف", true);
+  }
+  const [act, arg] = (ds.act||"").split(":");
+  switch(act){
     case "add-emp": return editEmployee();
-    case "add-advances": return editRecord("advances");
-    case "add-overtime": return editRecord("overtime");
+    case "add-advances": return editRecord("advances", null, arg);
+    case "add-overtime": return editRecord("overtime", null, arg);
+    case "add-leaves": return editLeave(null, arg);
+    case "att-of": state.attEmp = arg; state.y = now().getFullYear(); state.m = now().getMonth()+1; return go("attendance");
+    case "att-settings": return attSettings();
+    case "quick-fill": return quickFill();
     case "export-month": return exportXlsx("month");
     case "export-year": return exportXlsx("year");
     case "export-all": return exportXlsx("all");
     case "backup": return download(`نسخة-رواتب-${today()}.json`, JSON.stringify(db, null, 1));
     case "wipe": if(confirm("حذف جميع البيانات نهائياً؟") && confirm("تأكيد أخير: لا يمكن التراجع.")){ db = structuredClone(DEFAULTS); save(); render(); } return;
-    case "clear-att": if(confirm("مسح بيانات دوام هذا الشهر للموظف؟")){ delete db.attendance[`${state.attEmp}|${ym(state.y,state.m)}`]; save(); render(); } return;
+    case "clear-att": if(confirm("مسح بيانات دوام هذا الشهر للموظف؟")){ snapshot(); delete db.attendance[attKey(state.attEmp,state.y,state.m)]; save(); render(); toast("تم المسح", true); } return;
     case "post-ot": {
-      const emp = empById(state.attEmp), key = `${emp.id}|${ym(state.y,state.m)}`, sh = db.attendance[key] || {};
-      const rate = sh.rate != null && sh.rate !== "" ? num(sh.rate) : otRateFor(emp);
-      const res = calcAttendance(sh, state.y, state.m, rate), hours = fix((res.over - res.short)/60);
-      const tag = "من حاسبة الدوام";
-      const exist = db.overtime.find(o => o.empId===emp.id && o.date?.startsWith(ym(state.y,state.m)) && o.note===tag);
-      if(!confirm(`ترحيل ${hours} ساعة (${hmText(res.over-res.short)}) إلى سجل الإضافي لشهر ${MONTHS[state.m-1]}؟${exist?"\nسيتم استبدال الترحيل السابق.":""}`)) return;
-      if(exist){ exist.hours = hours; exist.date = ym(state.y,state.m)+"-"+pad(daysInMonth(state.y,state.m)); }
-      else db.overtime.push({id:uid(), empId:emp.id, date:ym(state.y,state.m)+"-"+pad(daysInMonth(state.y,state.m)), hours, note:tag});
-      save(); toast("تم الترحيل إلى الرواتب"); return;
+      const emp = empById(state.attEmp), {y,m} = state, sh = attSheet(emp.id,y,m);
+      const res = calcAttendance(sh, y, m, sheetRate(sh, emp)), hours = fix((res.over - res.short)/60);
+      const tag = "من حاسبة الدوام", date = ym(y,m)+"-"+pad(daysInMonth(y,m));
+      const exist = db.overtime.find(o => o.empId===emp.id && o.date?.startsWith(ym(y,m)) && o.note===tag);
+      if(!confirm(`ترحيل ${hours} ساعة (${hmText(res.over-res.short)}) إلى رواتب ${MONTHS[m-1]}؟${exist?"\nسيتم استبدال الترحيل السابق.":""}`)) return;
+      if(exist){ exist.hours = hours; exist.date = date; } else db.overtime.push({id:uid(), empId:emp.id, date, hours, note:tag});
+      save(); return toast("تم الترحيل إلى الرواتب");
     }
   }
 });
