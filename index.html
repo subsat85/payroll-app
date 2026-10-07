@@ -64,7 +64,7 @@ main{max-width:860px;margin:0 auto;padding:12px 16px calc(env(safe-area-inset-bo
 .btn.danger-ghost{background:transparent;color:var(--bad)}
 .btn.good{background:var(--good-soft);color:var(--good)}
 .btn.block{width:100%}
-.btn.sm{min-height:36px;padding:0 10px;font-size:13px}
+.btn.sm{min-height:44px;min-width:44px;padding:0 10px;font-size:13px}
 .btn:active,.icon-btn:active{transform:scale(.97)}
 .btn:focus-visible,.icon-btn:focus-visible,.row-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .icon-btn{width:var(--tap);height:var(--tap);display:inline-grid;place-items:center;border:0;background:transparent;color:var(--ink-2);border-radius:var(--r-sm);cursor:pointer;flex:0 0 auto}
@@ -91,8 +91,8 @@ input[type=checkbox]:checked{background:var(--brand-fill) url("data:image/svg+xm
 /* ===== Layout blocks ===== */
 .ctx{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .ctx .grow{flex:1;min-width:0}
-.mp{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;height:var(--tap);flex:0 0 auto}
-.mp button{border:0;background:none;color:var(--brand);width:40px;height:100%;display:grid;place-items:center;cursor:pointer;border-radius:12px}
+.mp{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;flex:0 0 auto}
+.mp button{border:0;background:none;color:var(--brand);width:44px;height:44px;display:grid;place-items:center;cursor:pointer;border-radius:12px}
 .mp span{min-width:96px;text-align:center;font-weight:650;font-size:var(--fs-sm)}
 .picker{display:flex;align-items:center;gap:8px;width:100%;min-height:var(--tap);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 10px;font:inherit;color:var(--ink);cursor:pointer;text-align:start}
 .picker b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
@@ -205,7 +205,7 @@ details summary{cursor:pointer;color:var(--brand);font-weight:600;min-height:var
 details summary::-webkit-details-marker{display:none}
 details[open] summary{margin-bottom:8px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.chip{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;min-height:36px;padding:0 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.chip{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;min-height:44px;padding:0 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .live{font-size:var(--fs-sm);color:var(--ink-2);background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px}
 
 .toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 70px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;display:flex;gap:14px;align-items:center;white-space:nowrap;max-width:calc(100vw - 32px)}
@@ -293,7 +293,13 @@ const DEFAULTS = {
   settings:{ currency:"د.أ", company:"", monthDays:30, otMultiplier:1.25, attReq:"09:00", weekend:5, ssPct:0, annualLeave:14, defIn:"", defOut:"", autoAtt:true },
   employees:[], payroll:{}, advances:[], overtime:[], attendance:{}, leaves:[]
 };
-const normalize = d => ({...structuredClone(DEFAULTS), ...d, settings:{...DEFAULTS.settings, ...(d.settings||{})}, leaves: d.leaves || []});
+const normalize = d => {
+  const out = {...structuredClone(DEFAULTS), ...d, settings:{...DEFAULTS.settings, ...(d.settings && typeof d.settings === "object" ? d.settings : {})}};
+  for(const k of ["employees","advances","overtime","leaves"]) if(!Array.isArray(out[k])) out[k] = [];
+  for(const k of ["payroll","attendance"]) if(!out[k] || typeof out[k] !== "object" || Array.isArray(out[k])) out[k] = {};
+  out.employees = out.employees.filter(e => e && e.id);
+  return out;
+};
 let db = load();
 function load(){
   try{ const d = JSON.parse(localStorage.getItem(KEY) || "null"); if(d) return normalize(d); }catch(e){}
@@ -302,8 +308,13 @@ function load(){
 // كل حفظ يزيد عدّاد التغييرات منذ آخر نسخة احتياطية، ويأخذ لقطة يومية تلقائية
 function save(silent){
   if(!silent) db.changes = (db.changes || 0) + 1;
-  try{ localStorage.setItem(KEY, JSON.stringify(db)); }
-  catch(e){ toast("⚠️ تعذّر الحفظ على الجهاز — احفظ نسخة احتياطية فوراً"); }
+  const json = JSON.stringify(db);
+  try{ localStorage.setItem(KEY, json); }
+  catch(e){
+    // الذاكرة ممتلئة: نضحّي باللقطات التلقائية لأن البيانات الأساسية أهم
+    try{ localStorage.removeItem(SNAP_KEY); localStorage.setItem(KEY, json); toast("⚠️ الذاكرة ممتلئة — حُذفت اللقطات التلقائية. احفظ نسخة احتياطية الآن"); }
+    catch(e2){ toast("⚠️ تعذّر الحفظ على الجهاز — احفظ نسخة احتياطية فوراً"); }
+  }
   dailySnapshot(); updateDot();
 }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -312,7 +323,13 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 // يقبل الأرقام العربية (٠-٩) والفاصلة العشرية العربية
-const toLatin = v => String(v ?? "").replace(/[٠-٩]/g, d => d.charCodeAt(0)-1632).replace(/[۰-۹]/g, d => d.charCodeAt(0)-1776).replace(/[٫,]/g, ".").replace(/[^\d.\-]/g, "");
+// يقبل الأرقام العربية، والفاصلة العشرية العربية (٫)، وفاصل الآلاف (1,290 أو ١٬٢٩٠)
+const toLatin = v => {
+  let t = String(v ?? "").replace(/[٠-٩]/g, d => d.charCodeAt(0)-1632).replace(/[۰-۹]/g, d => d.charCodeAt(0)-1776)
+    .replace(/[٬\s]/g, "").replace(/٫/g, ".").replace(/[−–]/g, "-");
+  t = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t) ? t.replace(/,/g, "") : t.replace(/,/g, ".");
+  return t.replace(/[^\d.\-]/g, "");
+};
 const num = v => { const n = parseFloat(toLatin(v)); return isFinite(n) ? n : 0; };
 const fix = v => Math.round(v*100)/100;
 const ic = (name, cls="") => `<svg class="ico ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -776,6 +793,11 @@ function enableSwipe(d){
   d.addEventListener("click", ev => { if(ev.target === d) d.close(); });
 }
 enableSwipe($("#dlg")); enableSwipe($("#ask"));
+if(window.visualViewport){
+  const fit = () => { const vv = visualViewport, kb = Math.max(0, innerHeight - vv.height - vv.offsetTop);
+    document.querySelectorAll("dialog").forEach(d => { d.style.marginBottom = kb > 80 ? kb + "px" : ""; d.style.maxHeight = kb > 80 ? (vv.height - 12) + "px" : ""; }); };
+  visualViewport.addEventListener("resize", fit); visualViewport.addEventListener("scroll", fit);
+}
 
 function openDialog(html, onSubmit, extraButtons="", okLabel="حفظ"){
   const d = $("#dlg");
@@ -1094,6 +1116,7 @@ async function exportXlsx(kind){
 const TAB_OF = {advances:"more", overtime:"more", leaves:"more", summary:"more", settings:"more", profile:"employees"};
 function render(){
   if(!views[state.tab]) state.tab = "home";
+  if(state.tab === "profile" && !empById(state.profile)) state.tab = "employees";
   const tab = TAB_OF[state.tab] || state.tab;
   document.querySelectorAll("#tabs button").forEach(b=>{ b.classList.toggle("on", b.dataset.tab===tab); b.setAttribute("aria-current", b.dataset.tab===tab ? "page" : "false"); });
   const h = HEAD[state.tab]();
