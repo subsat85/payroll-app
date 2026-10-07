@@ -23,6 +23,7 @@
     --bad:#ef7a72; --bad-soft:#3a1d1c; --warn:#e7b44d; --warn-soft:#33290f;
   }
 }
+[hidden]{display:none!important}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;font-size:15px;line-height:1.5}
 header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -44,6 +45,7 @@ label{display:block;font-size:13px;color:var(--muted);min-width:0}
 input,select,textarea{display:block;width:100%;min-width:0;max-width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-top:4px;min-height:44px}
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;text-align:right}
 input::-webkit-date-and-time-value{text-align:right}
+input.invalid,select.invalid{border-color:var(--bad);background:var(--bad-soft)}
 input:focus,select:focus{outline:2px solid var(--brand);outline-offset:-1px}
 input[type=checkbox]{width:22px;height:22px;min-height:0;margin:0;accent-color:var(--brand);flex:0 0 auto;display:inline-block}
 .check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:15px;padding:6px 0;cursor:pointer}
@@ -186,7 +188,9 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 /* ========== أدوات ========== */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const num = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(n) ? n : 0; };
+// يقبل الأرقام العربية (٠-٩) والفاصلة العشرية العربية
+const toLatin = v => String(v ?? "").replace(/[٠-٩]/g, d => d.charCodeAt(0)-1632).replace(/[۰-۹]/g, d => d.charCodeAt(0)-1776).replace(/[٫,]/g, ".").replace(/[^\d.\-]/g, "");
+const num = v => { const n = parseFloat(toLatin(v)); return isFinite(n) ? n : 0; };
 const fix = v => Math.round(v*100)/100;
 // الأرقام تُعرض باتجاه LTR حتى تظهر الإشارة السالبة في مكانها الصحيح
 const nb = v => `<bdi dir="ltr">${v}</bdi>`;
@@ -318,7 +322,13 @@ views.home = () => {
     else { st = `<span class="muted">لم يسجّل حضور</span>`; btn = `<button class="btn sm good" data-punch="in|${e.id}">حضور</button>`; }
     return `<div class="person"><div class="avatar">${initials(e.name)}</div><div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
   }).join("");
-  return `
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  const daysSince = db.lastBackup ? Math.round((parseDate(today()) - parseDate(db.lastBackup))/DAY) : null;
+  let banner = "";
+  if(!db.employees.length && standalone) banner = `<div class="card" style="border-color:var(--brand)"><b>عندك بيانات أدخلتها سابقاً في Safari؟</b><p class="note">التطبيق على الشاشة الرئيسية له ذاكرة منفصلة. افتح الموقع في Safari ← المزيد ← الإعدادات ← «نسخ كل البيانات»، ثم ارجع هنا واضغط:</p><button class="btn primary block" data-act="paste-data" style="margin-top:8px">📥 لصق البيانات</button></div>`;
+  else if(db.employees.length && !standalone && /iPhone|iPad/.test(navigator.userAgent)) banner = `<div class="card" style="border-color:var(--warn)"><b>⚠️ أنت تستخدم Safari</b><p class="note">إذا أضفت التطبيق للشاشة الرئيسية فلن تظهر فيه هذه البيانات تلقائياً. انسخها الآن ثم الصقها داخل التطبيق.</p><button class="btn primary block" data-act="copy-data" style="margin-top:8px">📋 نسخ كل البيانات</button></div>`;
+  else if(db.employees.length && (daysSince == null || daysSince >= 7)) banner = `<div class="card" style="border-color:var(--warn)"><b>💾 ${daysSince == null ? "لم تحفظ نسخة احتياطية بعد" : `آخر نسخة احتياطية قبل ${daysSince} يوم`}</b><p class="note">احفظ نسخة حتى لا تضيع البيانات إذا حُذف التطبيق أو تغيّر الجوال.</p><button class="btn primary block" data-act="backup" style="margin-top:8px">حفظ نسخة الآن</button></div>`;
+  return `${banner}
   <div class="stats">
     <div class="stat"><small>موظفون نشطون</small><b>${active.length}</b></div>
     <div class="stat"><small>صافي رواتب ${MONTHS[m-1]}</small><b>${money(net)}</b></div>
@@ -520,10 +530,10 @@ views.settings = () => {
     <label>اسم المنشأة (يظهر في القسيمة)<input value="${esc(S.company)}" data-set="company"></label>
     <div class="row" style="margin-top:10px">
       <label>العملة<input value="${esc(S.currency)}" data-set="currency"></label>
-      <label>أيام الشهر في الحساب<input type="number" inputmode="numeric" value="${esc(S.monthDays)}" data-set="monthDays"></label>
-      <label>معامل أجر الإضافي<input type="number" inputmode="decimal" step="0.05" value="${esc(S.otMultiplier)}" data-set="otMultiplier"></label>
-      <label>الضمان الاجتماعي % (0 = بدون)<input type="number" inputmode="decimal" step="0.25" value="${esc(S.ssPct)}" data-set="ssPct"></label>
-      <label>الإجازة السنوية (يوم)<input type="number" inputmode="numeric" value="${esc(S.annualLeave)}" data-set="annualLeave"></label>
+      <label>أيام الشهر في الحساب<input type="text" inputmode="numeric" value="${esc(S.monthDays)}" data-set="monthDays"></label>
+      <label>معامل أجر الإضافي<input type="text" inputmode="decimal" step="0.05" value="${esc(S.otMultiplier)}" data-set="otMultiplier"></label>
+      <label>الضمان الاجتماعي % (0 = بدون)<input type="text" inputmode="decimal" step="0.25" value="${esc(S.ssPct)}" data-set="ssPct"></label>
+      <label>الإجازة السنوية (يوم)<input type="text" inputmode="numeric" value="${esc(S.annualLeave)}" data-set="annualLeave"></label>
       <label>يوم العطلة الأسبوعية<select data-set="weekend">${WEEKDAYS.map((d,i)=>`<option value="${i}" ${i==S.weekend?"selected":""}>${d}</option>`).join("")}</select></label>
     </div></div>
   <div class="card"><h2>الدوام</h2><div class="row">
@@ -532,9 +542,13 @@ views.settings = () => {
       <label>وقت الانصراف المعتاد<input type="time" value="${esc(S.defOut)}" data-set="defOut"></label>
     </div><p class="note">الأوقات المعتادة تُستخدم في «التعبئة السريعة» وتظهر مقترحة عند إدخال يوم جديد.</p></div>
   <div class="card"><h2>النسخ الاحتياطي</h2>
-    <p class="muted" style="margin-top:0">البيانات محفوظة على هذا الجهاز فقط. احفظ نسخة احتياطية بانتظام أو انقلها لجهاز آخر.</p>
-    <div class="row"><button class="btn primary" data-act="backup">💾 حفظ نسخة</button>
-      <label class="btn" style="flex:0 0 auto;color:var(--ink)">📂 استعادة نسخة<input type="file" accept=".json,application/json" data-act-file="restore" hidden></label>
+    <p class="muted" style="margin-top:0">البيانات محفوظة داخل هذا التطبيق على هذا الجهاز فقط. على iPhone، Safari والأيقونة على الشاشة الرئيسية لكلٍّ منهما بيانات منفصلة. ${db.lastBackup?`آخر نسخة: ${esc(db.lastBackup)}`:"لم تُحفظ أي نسخة بعد."}</p>
+    <h3 style="margin:10px 0 6px">نقل البيانات (الأسهل)</h3>
+    <div class="row"><button class="btn primary" data-act="copy-data">📋 نسخ كل البيانات</button><button class="btn primary" data-act="paste-data">📥 لصق البيانات</button></div>
+    <p class="note">انسخ من المكان القديم (مثلاً Safari)، ثم افتح التطبيق الجديد ← المزيد ← الإعدادات ← لصق البيانات.</p>
+    <h3 style="margin:14px 0 6px">نسخة احتياطية كملف</h3>
+    <div class="row"><button class="btn" data-act="backup">💾 حفظ ملف نسخة</button>
+      <label class="btn" style="flex:0 0 auto;color:var(--ink)">📂 استعادة نسخة<input type="file" data-act-file="restore" hidden></label>
       <button class="btn" data-act="export-all">⬇️ تصدير Excel</button>
       <button class="btn danger" data-act="wipe">🗑️ حذف الكل</button></div></div>
   <p class="note">الراتب اليومي = الراتب ÷ أيام الشهر · خصم التأخير = الراتب اليومي ÷ ساعات العمل × ساعات التأخير · أجر الإضافي = نفس سعر الساعة × المعامل · الصافي = الأساسي − الخصومات + الإضافي + المكافآت.</p>`;
@@ -548,8 +562,17 @@ function openDialog(html, onSubmit, extraButtons=""){
   f.onsubmit = ev => {
     const v = ev.submitter?.value;
     if(v === "cancel" || !v) return;
-    if(v === "ok" && !f.checkValidity()){ ev.preventDefault(); f.reportValidity(); return; }
+    if(v === "ok"){
+      const bad = [...f.querySelectorAll("[required]")].filter(i => !String(i.value).trim());
+      f.querySelectorAll(".invalid").forEach(i => i.classList.remove("invalid"));
+      if(bad.length){
+        ev.preventDefault(); bad.forEach(i => i.classList.add("invalid"));
+        const lbl = bad[0].closest("label")?.childNodes[0]?.textContent?.trim() || "الحقول المطلوبة";
+        toast("أكمل: " + lbl); bad[0].focus(); return;
+      }
+    }
     const data = Object.fromEntries(new FormData(f));
+    f.querySelectorAll("input[inputmode=decimal][name],input[inputmode=numeric][name]").forEach(i => { if(i.name !== "nid" && data[i.name] !== "") data[i.name] = toLatin(data[i.name]); });
     f.querySelectorAll("input[type=checkbox][name]").forEach(c => data[c.name] = c.checked);
     if(onSubmit(data, v) === false) ev.preventDefault();
   };
@@ -569,8 +592,8 @@ function editEmployee(id){
     <label>اسم الموظف<input name="name" required value="${esc(e.name||"")}" autocomplete="off"></label>
     <div class="row"><label>المسمى الوظيفي<input name="title" value="${esc(e.title||"")}"></label>
       <label>تاريخ التوظيف<input type="date" name="hire" required value="${esc(e.hire||"")}"></label></div>
-    <div class="row"><label>الراتب الشهري<input type="number" step="0.01" inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
-      <label>ساعات العمل اليومية<input type="number" step="0.5" inputmode="decimal" name="hours" required value="${esc(e.hours??8)}"></label></div>
+    <div class="row"><label>الراتب الشهري<input type="text" step="0.01" inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
+      <label>ساعات العمل اليومية<input type="text" step="0.5" inputmode="decimal" name="hours" required value="${esc(e.hours??8)}"></label></div>
     <div class="row"><label>الهاتف<input type="tel" name="phone" value="${esc(e.phone||"")}"></label>
       <label>الرقم الوطني<input inputmode="numeric" name="nid" value="${esc(e.nid||"")}"></label></div>
     <details ${e.endDate?"open":""}><summary>إنهاء الخدمة وملاحظات</summary>
@@ -592,7 +615,7 @@ function editRecord(kind, id, empId){
   openDialog(`<h3>${id?"تعديل ":""}${T[0]}</h3>
     <label>الموظف<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
     <div class="row"><label>التاريخ<input type="date" name="date" required value="${esc(r.date||"")}"></label>
-      <label>${T[1]}<input type="number" step="${T[3]}" inputmode="decimal" name="${T[2]}" required value="${esc(r[T[2]]??"")}"></label></div>
+      <label>${T[1]}<input type="text" step="${T[3]}" inputmode="decimal" name="${T[2]}" required value="${esc(r[T[2]]??"")}"></label></div>
     <label>ملاحظات<input name="note" value="${esc(r.note||"")}"></label>`,
   (d, v) => {
     snapshot();
@@ -630,10 +653,10 @@ function editLeave(id, empId){
 function editPay(empId){
   const e = empById(empId), {y,m} = state, rec = db.payroll[ym(y,m)]?.[empId] || {};
   openDialog(`<h3>${esc(e.name)} — ${MONTHS[m-1]} ${y}</h3>
-    <div class="row"><label>أيام غياب<input type="number" inputmode="decimal" step="0.5" min="0" name="absDays" value="${esc(rec.absDays||"")}"></label>
-      <label>ساعات تأخير<input type="number" inputmode="decimal" step="0.25" min="0" name="lateHours" value="${esc(rec.lateHours||"")}"></label></div>
-    <div class="row"><label>مكافآت / علاوات<input type="number" inputmode="decimal" step="0.01" name="bonus" value="${esc(rec.bonus||"")}"></label>
-      <label>خصومات أخرى<input type="number" inputmode="decimal" step="0.01" name="otherDed" value="${esc(rec.otherDed||"")}"></label></div>
+    <div class="row"><label>أيام غياب<input type="text" inputmode="decimal" step="0.5" min="0" name="absDays" value="${esc(rec.absDays||"")}"></label>
+      <label>ساعات تأخير<input type="text" inputmode="decimal" step="0.25" min="0" name="lateHours" value="${esc(rec.lateHours||"")}"></label></div>
+    <div class="row"><label>مكافآت / علاوات<input type="text" inputmode="decimal" step="0.01" name="bonus" value="${esc(rec.bonus||"")}"></label>
+      <label>خصومات أخرى<input type="text" inputmode="decimal" step="0.01" name="otherDed" value="${esc(rec.otherDed||"")}"></label></div>
     <label>ملاحظة<input name="note" value="${esc(rec.note||"")}"></label>
     <p class="note">السلف والساعات الإضافية والإجازات بدون راتب تُحسب تلقائياً من سجلاتها.</p>`,
   d => { Object.assign(((db.payroll[ym(y,m)] ||= {})[empId] ||= {}), d); save(); render(); toast("تم الحفظ"); });
@@ -672,7 +695,7 @@ function attSettings(){
   const {y,m} = state, emp = empById(state.attEmp), sheet = attSheet(emp.id,y,m);
   openDialog(`<h3>دوام ${esc(emp.name)} — ${MONTHS[m-1]}</h3>
     <div class="row"><label>الساعات المطلوبة يومياً<input type="time" name="req" value="${esc(sheet.req || db.settings.attReq)}"></label>
-      <label>سعر الساعة الإضافية<input type="number" step="0.01" inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${fix(otRateFor(emp)).toFixed(2)} تلقائي"></label></div>
+      <label>سعر الساعة الإضافية<input type="text" step="0.01" inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${fix(otRateFor(emp)).toFixed(2)} تلقائي"></label></div>
     <p class="note">اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ ${db.settings.monthDays} ÷ ساعات العمل × ${db.settings.otMultiplier}.</p>`,
   d => { Object.assign(attSheet(emp.id,y,m,true), d); save(); render(); toast("تم الحفظ"); });
 }
@@ -682,8 +705,8 @@ function quickFill(){
   const isCur = y===now().getFullYear() && m===now().getMonth()+1;
   openDialog(`<h3>تعبئة سريعة — ${esc(emp.name)}</h3>
     <div class="row">${timeField("الحضور","in",db.settings.defIn)}${timeField("الانصراف","out",db.settings.defOut)}</div>
-    <div class="row"><label>من يوم<input type="number" inputmode="numeric" name="from" min="1" max="${nd}" value="1"></label>
-      <label>إلى يوم<input type="number" inputmode="numeric" name="to" min="1" max="${nd}" value="${isCur ? now().getDate() : nd}"></label></div>
+    <div class="row"><label>من يوم<input type="text" inputmode="numeric" name="from" min="1" max="${nd}" value="1"></label>
+      <label>إلى يوم<input type="text" inputmode="numeric" name="to" min="1" max="${nd}" value="${isCur ? now().getDate() : nd}"></label></div>
     <label class="check"><input type="checkbox" name="skipWeekend" checked> تخطّي يوم ${WEEKDAYS[db.settings.weekend]}</label>
     <label class="check"><input type="checkbox" name="onlyEmpty" checked> الأيام الفارغة فقط</label>
     <label class="check"><input type="checkbox" name="remember" checked> حفظها كأوقات معتادة</label>
@@ -774,6 +797,35 @@ async function exportXlsx(kind){
   }
   XLSX.writeFile(wb, file);
 }
+async function backup(){
+  const text = JSON.stringify(db), name = `payroll-backup-${today()}.json`;
+  db.lastBackup = today(); save();
+  try{
+    const file = new File([text], name, {type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"نسخة الرواتب"}); render(); return toast("تم — احفظ الملف في «الملفات» أو أرسله لنفسك"); }
+  }catch(err){ if(err?.name === "AbortError") return; }
+  download(name, text); render();
+}
+async function copyData(){
+  const text = JSON.stringify(db);
+  try{ await navigator.clipboard.writeText(text); db.lastBackup = today(); save(); toast("تم نسخ كل البيانات — الصقها في التطبيق الآخر"); }
+  catch(err){ pasteDialog(text); }
+}
+function restoreFrom(txt){
+  let d; try{ d = JSON.parse(String(txt).trim()); }catch(err){ toast("النص غير صالح — تأكد أنك نسخت البيانات كاملة"); return false; }
+  if(!d || !Array.isArray(d.employees)){ toast("هذه ليست بيانات الرواتب"); return false; }
+  const msg = db.employees.length ? `سيتم استبدال البيانات الحالية (${db.employees.length} موظف) بالبيانات المنقولة (${d.employees.length} موظف). متابعة؟` : `نقل ${d.employees.length} موظف مع كل سجلاتهم؟`;
+  if(!confirm(msg)) return false;
+  db = normalize(d); save(); render(); toast("تم نقل البيانات ✓"); return true;
+}
+function pasteDialog(prefill){
+  const f = openDialog(prefill
+    ? `<h3>انسخ هذا النص</h3><p class="note">اضغط مطولاً على النص ← تحديد الكل ← نسخ، ثم افتح التطبيق الآخر واختر «لصق البيانات».</p><textarea rows="6" readonly>${esc(prefill)}</textarea>`
+    : `<h3>لصق البيانات</h3><p class="note">الصق هنا البيانات التي نسختها من المتصفح أو من جهاز آخر.</p><button type="button" class="btn block" id="readClip">📋 لصق من الحافظة</button><textarea name="data" rows="6" placeholder="أو الصق النص هنا يدوياً" style="margin-top:8px"></textarea>`,
+    d => prefill ? undefined : restoreFrom(d.data) ? undefined : false);
+  if(prefill){ const t = f.querySelector("textarea"); t.focus(); t.select(); }
+  $("#readClip")?.addEventListener("click", async () => { try{ const t = await navigator.clipboard.readText(); f.data.value = t; if(t) restoreFrom(t) && $("#dlg").close(); }catch(err){ toast("الصق يدوياً في المربع"); } });
+}
 function download(name, text){
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text],{type:"application/json"})); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 }
@@ -805,10 +857,7 @@ $("#view").addEventListener("change", e => {
   if(ds.set){ db.settings[ds.set] = t.type==="number" || ds.set==="weekend" ? num(t.value) : t.value; save(); return toast("تم الحفظ"); }
   if(ds.actFile === "restore" && t.files[0]){
     t.files[0].text().then(txt => {
-      try{ const d = JSON.parse(txt); if(!Array.isArray(d.employees)) throw 0;
-        if(!confirm("سيتم استبدال البيانات الحالية بالنسخة الاحتياطية. متابعة؟")) return;
-        db = normalize(d); save(); render(); toast("تمت الاستعادة");
-      }catch(err){ toast("ملف غير صالح"); }
+      restoreFrom(txt); t.value = "";
     });
   }
 });
@@ -864,7 +913,9 @@ $("#view").addEventListener("click", e => {
     case "export-month": return exportXlsx("month");
     case "export-year": return exportXlsx("year");
     case "export-all": return exportXlsx("all");
-    case "backup": return download(`نسخة-رواتب-${today()}.json`, JSON.stringify(db, null, 1));
+    case "backup": return backup();
+    case "copy-data": return copyData();
+    case "paste-data": return pasteDialog();
     case "wipe": if(confirm("حذف جميع البيانات نهائياً؟") && confirm("تأكيد أخير: لا يمكن التراجع.")){ db = structuredClone(DEFAULTS); save(); render(); } return;
     case "clear-att": if(confirm("مسح بيانات دوام هذا الشهر للموظف؟")){ snapshot(); delete db.attendance[attKey(state.attEmp,state.y,state.m)]; save(); render(); toast("تم المسح", true); } return;
     case "post-ot": {
@@ -880,6 +931,7 @@ $("#view").addEventListener("click", e => {
 });
 
 render();
+try{ navigator.storage?.persist?.(); }catch(e){}
 if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
 </script>
 </body>
