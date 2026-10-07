@@ -208,8 +208,23 @@ details[open] summary{margin-bottom:8px}
 .chip{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;min-height:44px;padding:0 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .live{font-size:var(--fs-sm);color:var(--ink-2);background:var(--surface-2);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px}
 
-.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 70px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;display:flex;gap:14px;align-items:center;white-space:nowrap;max-width:calc(100vw - 32px)}
-.toast.show{opacity:1;pointer-events:auto}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 70px);left:50%;transform:translate(-50%,8px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .16s ease-in,transform .16s ease-in;pointer-events:none;z-index:60;display:flex;gap:14px;align-items:center;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;transition:opacity .18s cubic-bezier(.2,.8,.2,1),transform .18s cubic-bezier(.2,.8,.2,1)}
+.toast .bar{position:absolute;inset-inline:0;bottom:0;height:3px;background:currentColor;opacity:.35;transform-origin:right center}
+
+/* ===== Motion (Phase 3) ===== */
+dialog[open]::backdrop{animation:bd-in .2s ease-out}
+dialog.closing::backdrop{animation:bd-out .2s ease-in forwards}
+dialog.closing{pointer-events:none}
+@keyframes bd-in{from{opacity:0}}
+@keyframes bd-out{to{opacity:0}}
+.hl{position:relative}
+.hl::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--hl,var(--brand));opacity:0;pointer-events:none;animation:hl .7s ease-out}
+@keyframes hl{from{opacity:.14}to{opacity:0}}
+@media (prefers-reduced-motion: reduce){
+  .toast,.toast.show{transform:translate(-50%,0)}
+  .btn:active,.icon-btn:active{transform:none}
+}
 .toast button{background:none;border:0;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:32px}
 #print{display:none}
 .slip{max-width:520px;margin:0 auto}
@@ -362,7 +377,10 @@ function toast(t, undo){
   const el = $("#toast");
   el.innerHTML = esc(t) + (undo ? ` <button id="undoBtn">تراجع</button>` : "");
   if(undo) $("#undoBtn").onclick = () => { if(undoSnap){ db = undoSnap; undoSnap = null; save(); render(); toast("تم التراجع"); } };
-  el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"), undo ? 5000 : 2000);
+  const ms = undo ? 5000 : 2000;
+  if(undo){ const bar = document.createElement("span"); bar.className = "bar"; el.appendChild(bar);
+    motion(bar, [{transform:"scaleX(1)"},{transform:"scaleX(0)"}], {duration:ms, easing:"linear", fill:"forwards"}); }
+  el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"), ms);
 }
 const snapshot = () => { undoSnap = structuredClone(db); };
 const empById = id => db.employees.find(e => e.id === id);
@@ -522,7 +540,7 @@ views.home = () => {
     else if(r.in && r.out) { present++; st = `انصرف ${nb(r.out)} · ${hm(calcDay(sh, r).actual)} ساعة`; btn = `<button class="btn sm" data-day-edit="${e.id}|${day}">${ic("pencil","sm")} تعديل</button>`; }
     else if(r.in) { present++; st = `حاضر منذ ${nb(r.in)}`; btn = `<button class="btn sm primary" data-punch="out|${e.id}">${ic("out","sm")} انصراف</button>`; }
     else { st = "لم يسجّل حضوراً"; btn = `<button class="btn sm good" data-punch="in|${e.id}">${ic("in","sm")} حضور</button>`; }
-    return `<div class="row">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
+    return `<div class="row" data-row="${e.id}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
   }).join("");
   const ds = daysSinceBackup();
   let banner = "";
@@ -580,7 +598,7 @@ views.attendance = () => {
 function payCard(e, p){
   const MD = num(db.settings.monthDays)||30;
   const line = (t,v,cls="neg") => Math.abs(v) > 0.004 ? `<dt>${t}</dt><dd class="${cls}">${money(v)}</dd>` : "";
-  return `<div class="pcard ${p.delivered?"done":""}">
+  return `<div class="pcard ${p.delivered?"done":""}" data-card="${e.id}">
     <div class="head">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.title?" · ":""}${p.days<MD?`${p.days} يوم استحقاق`:"شهر كامل"}</small></div>
       ${p.delivered?`<span class="tag good">سُلِّم</span>`:""}</div>
     <dl>
@@ -783,15 +801,65 @@ function tfSet(root, name, v){
 document.addEventListener("change", e => { if(e.target.matches?.(".tf select")) tfSync(e.target.closest(".tf")); }, true);
 document.addEventListener("click", e => { const b = e.target.closest?.(".tf [data-now]"); if(b){ const tf = b.closest(".tf"); tfSet(tf.parentElement, tf.dataset.tf, nowHM()); } });
 
+/* ========== الحركة (سريعة وقابلة للمقاطعة، وتُلغى عند تفعيل «تقليل الحركة») ========== */
+const RM = matchMedia("(prefers-reduced-motion: reduce)");
+const EASE_OUT = "cubic-bezier(.32,.72,0,1)", EASE_IN = "cubic-bezier(.4,0,1,1)", EASE_POP = "cubic-bezier(.2,.8,.2,1)";
+const isSheetLayout = () => innerWidth <= 600;
+function motion(el, frames, opts){ if(!el || !el.animate) return null; try{ return el.animate(frames, opts); }catch(e){ return null; } }
+// يفتح الورقة بانزلاق، ويُغلقها بانزلاق من موضعها الحالي (حتى أثناء السحب). إعادة الفتح أثناء الإغلاق تُلغي الإغلاق.
+function animateDialog(d){
+  const nativeShow = HTMLDialogElement.prototype.showModal.bind(d), nativeClose = HTMLDialogElement.prototype.close.bind(d);
+  let closing = null;
+  const finishClose = rv => { if(closing){ closing.cancel(); closing = null; } d.classList.remove("closing"); d.style.transform = ""; if(d.open) nativeClose(rv); };
+  d.showModal = () => {
+    if(closing) finishClose();
+    if(d.open) return;
+    nativeShow();
+    const enter = RM.matches ? [{opacity:0},{opacity:1}]
+      : isSheetLayout() ? [{transform:"translateY(100%)"},{transform:"translateY(0)"}]
+      : [{opacity:0, transform:"translateY(12px) scale(.98)"},{opacity:1, transform:"none"}];
+    motion(d, enter, {duration: RM.matches ? 150 : 280, easing: EASE_OUT});
+  };
+  d.close = rv => {
+    if(!d.open || closing) return;
+    const dismiss = d.onDismiss; d.onDismiss = null; dismiss?.();
+    d.classList.add("closing");
+    const cur = getComputedStyle(d).transform;
+    const exit = RM.matches ? [{opacity:1},{opacity:0}]
+      : isSheetLayout() ? [{transform: cur && cur !== "none" ? cur : "translateY(0)"},{transform:"translateY(100%)"}]
+      : [{opacity:1},{opacity:0, transform:"translateY(8px) scale(.98)"}];
+    d.getAnimations().forEach(a => a.cancel());
+    d.style.transform = "";
+    closing = motion(d, exit, {duration: RM.matches ? 120 : 200, easing: EASE_IN, fill:"forwards"});
+    if(!closing) return finishClose(rv);
+    closing.onfinish = () => finishClose(rv);
+  };
+  d.isClosing = () => !!closing;
+  d.addEventListener("cancel", e => { e.preventDefault(); d.close(); });
+}
+const whenClosed = d => new Promise(res => { if(!d.open) return res(); d.addEventListener("close", () => res(), {once:true}); });
+// وميض خفيف يؤكّد أين حدث التغيير
+function flash(el, color){ if(!el) return; el.style.setProperty("--hl", color || "var(--brand)"); el.classList.remove("hl"); void el.offsetWidth; el.classList.add("hl"); }
+function pop(el, frames){ if(!el || RM.matches) return; motion(el, frames || [{transform:"scale(.92)", opacity:.4},{transform:"scale(1)", opacity:1}], {duration:180, easing:EASE_POP}); }
+function slideView(dir){
+  const kids = [...$("#view").children].filter(c => !c.classList.contains("ctx"));
+  const frames = RM.matches ? [{opacity:0},{opacity:1}] : [{opacity:0, transform:`translateX(${dir > 0 ? -12 : 12}px)`},{opacity:1, transform:"none"}];
+  kids.forEach(k => motion(k, frames, {duration: RM.matches ? 120 : 180, easing: EASE_POP}));
+}
+
 /* ========== الأوراق السفلية ========== */
 function enableSwipe(d){
   let y0 = null, dy = 0;
-  d.addEventListener("pointerdown", e => { if(e.target.closest(".sheet-grab")){ y0 = e.clientY; dy = 0; e.target.setPointerCapture?.(e.pointerId); } });
+  d.addEventListener("pointerdown", e => { if(e.target.closest(".sheet-grab") && !d.isClosing?.()){ d.getAnimations().forEach(a => a.finish()); y0 = e.clientY; dy = 0; e.target.setPointerCapture?.(e.pointerId); } });
   d.addEventListener("pointermove", e => { if(y0 == null) return; dy = Math.max(0, e.clientY - y0); d.style.transform = `translateY(${dy}px)`; });
-  const end = () => { if(y0 == null) return; y0 = null; d.style.transform = ""; if(dy > 90) d.close(); };
+  const end = () => { if(y0 == null) return; y0 = null;
+    if(dy > 90) return d.close();
+    d.style.transform = "";
+    if(dy > 0 && !RM.matches) motion(d, [{transform:`translateY(${dy}px)`},{transform:"translateY(0)"}], {duration:200, easing:EASE_OUT}); };
   d.addEventListener("pointerup", end); d.addEventListener("pointercancel", end);
   d.addEventListener("click", ev => { if(ev.target === d) d.close(); });
 }
+animateDialog($("#dlg")); animateDialog($("#ask"));
 enableSwipe($("#dlg")); enableSwipe($("#ask"));
 if(window.visualViewport){
   const fit = () => { const vv = visualViewport, kb = Math.max(0, innerHeight - vv.height - vv.offsetTop);
@@ -806,7 +874,7 @@ function openDialog(html, onSubmit, extraButtons="", okLabel="حفظ"){
   const f = d.querySelector("form");
   f.onsubmit = ev => {
     const v = ev.submitter?.value;
-    if(v === "cancel" || !v) return;
+    if(v === "cancel" || !v){ ev.preventDefault(); d.close(); return; }
     if(v === "ok"){
       const bad = [...f.querySelectorAll("[required]")].filter(i => !String(i.value).trim());
       f.querySelectorAll(".invalid").forEach(i => i.classList.remove("invalid"));
@@ -820,31 +888,35 @@ function openDialog(html, onSubmit, extraButtons="", okLabel="حفظ"){
     f.querySelectorAll("input[inputmode=decimal][name],input[inputmode=numeric][name]").forEach(i => { if(i.name !== "nid" && data[i.name] !== "") data[i.name] = toLatin(data[i.name]); });
     f.querySelectorAll("input[type=checkbox][name]").forEach(c => data[c.name] = c.checked);
     const r = onSubmit(data, v);
-    if(r === false || r instanceof Promise) ev.preventDefault();
+    ev.preventDefault();
     if(r instanceof Promise) r.then(ok => { if(ok !== false) d.close(); });
+    else if(r !== false) d.close(v);
   };
   d.showModal();
   return f;
 }
 // تأكيد داخل التطبيق بدل نوافذ المتصفح
 function ask(msg, {ok="تأكيد", danger=false, title=""}={}){
-  return new Promise(res => {
+  return new Promise(async res => {
     const d = $("#ask");
+    if(d.open){ d.close(); await whenClosed(d); }
     d.innerHTML = `<div class="sheet-grab"></div><div class="ask-body">${title?`<h3>${title}</h3>`:""}<p>${msg}</p></div>
       <div class="sheet-foot"><button class="btn ${danger?"danger":"primary"}" data-r="1">${ok}</button><button class="btn" data-r="0">إلغاء</button></div>`;
     let done = false; const fin = v => { if(!done){ done = true; res(v); } };
     d.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { fin(b.dataset.r === "1"); d.close(); });
-    d.onclose = () => fin(false);
+    // يُحسم السؤال فقط بفعل المستخدم، لا بحدث إغلاق متأخر من نافذة سابقة
+    d.onDismiss = () => fin(false);
     d.showModal();
   });
 }
-function menu(title, items){
+async function menu(title, items){
   const d = $("#ask");
+  if(d.open){ d.close(); await whenClosed(d); }
   d.innerHTML = `<div class="sheet-grab"></div>${title?`<div class="ask-body"><h3>${title}</h3></div>`:""}<div class="menu-list">${items.map((it,i)=>`<button data-i="${i}" class="${it.danger?"danger":""}">${ic(it.icon)}${it.label}</button>`).join("")}</div>
     <div class="sheet-foot"><button class="btn" data-close>إغلاق</button></div>`;
-  d.onclose = null;
+  d.onDismiss = null;
   d.querySelector("[data-close]").onclick = () => d.close();
-  d.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { d.close(); setTimeout(() => items[+b.dataset.i].run(), 30); });
+  d.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { d.close(); whenClosed(d).then(() => items[+b.dataset.i].run()); });
   d.showModal();
 }
 
@@ -1033,7 +1105,7 @@ function showSlip(empId){
     <button class="btn primary" type="button" id="slipPrint">${ic("printer","sm")} طباعة / PDF</button>
     <button class="btn" type="button" id="slipShare">${ic("share","sm")} مشاركة</button></div>`;
   d.showModal();
-  $("#slipPrint").onclick = () => { $("#print").innerHTML = slipHTML(e,y,m); d.close(); document.body.classList.add("printing"); setTimeout(()=>{ print(); document.body.classList.remove("printing"); }, 50); };
+  $("#slipPrint").onclick = () => { $("#print").innerHTML = slipHTML(e,y,m); d.close(); whenClosed(d).then(() => { document.body.classList.add("printing"); setTimeout(()=>{ print(); document.body.classList.remove("printing"); }, 30); }); };
   $("#slipShare").onclick = async () => {
     const text = slipText(e,y,m);
     if(navigator.share){ try{ await navigator.share({text}); }catch(err){} }
@@ -1141,7 +1213,10 @@ document.addEventListener("change", e => {
     snapshot();
     const r = ((db.payroll[ym(state.y,state.m)] ||= {})[ds.deliver] ||= {});
     r.delivered = t.checked; r.deliveredDate = t.checked ? today() : "";
-    save(); render(); return toast(t.checked ? `تم تسليم راتب ${empName(ds.deliver)}` : "أُلغي التسليم", true);
+    save(); render();
+    const card = $(`[data-card="${ds.deliver}"]`);
+    if(t.checked){ flash(card, "var(--good)"); pop(card?.querySelector("[data-deliver]"), [{transform:"scale(.6)"},{transform:"scale(1.1)", offset:.6},{transform:"scale(1)"}]); pop(card?.querySelector(".head .tag"), [{opacity:0, transform:"scale(.9)"},{opacity:1, transform:"scale(1)"}]); }
+    return toast(t.checked ? `تم تسليم راتب ${empName(ds.deliver)}` : "أُلغي التسليم", true);
   }
   if(ds.set){ db.settings[ds.set] = t.type==="checkbox" ? t.checked : ds.num!=null ? num(t.value) : t.value; save(); if(t.type==="checkbox") render(); return toast("تم الحفظ"); }
   if(ds.actFile === "restore" && t.files[0]){ t.files[0].text().then(txt => { restoreFrom(txt); t.value = ""; }); }
@@ -1217,7 +1292,7 @@ document.addEventListener("click", async e => {
   if(ds.mstep){
     if(["leaves","summary"].includes(state.tab)) state.y += +ds.mstep;
     else { state.m += +ds.mstep; if(state.m>12){state.m=1;state.y++;} if(state.m<1){state.m=12;state.y--;} }
-    return render();
+    render(); return slideView(+ds.mstep);
   }
   if(ds.dayEdit){
     const [id,d] = ds.dayEdit.split("|");
@@ -1229,7 +1304,9 @@ document.addEventListener("click", async e => {
     snapshot();
     const sh = attSheet(id,d.getFullYear(),d.getMonth()+1,true); sh.days ||= {};
     (sh.days[d.getDate()] ||= {})[kind] = nowHM();
-    save(); render(); return toast(kind==="in" ? `حضور ${empName(id)} ${nowHM()}` : `انصراف ${empName(id)} ${nowHM()}`, true);
+    save(); render();
+    const row = $(`[data-row="${id}"]`); flash(row, kind==="in" ? "var(--good)" : "var(--brand)"); pop(row?.querySelector(".btn")); pop(row?.querySelector(".info small"), [{opacity:0},{opacity:1}]);
+    return toast(kind==="in" ? `حضور ${empName(id)} ${nowHM()}` : `انصراف ${empName(id)} ${nowHM()}`, true);
   }
   if(ds.payEdit) return editPay(ds.payEdit);
   if(ds.slip){ if(state.tab === "profile"){ state.y = now().getFullYear(); state.m = now().getMonth()+1; } return showSlip(ds.slip); }
