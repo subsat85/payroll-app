@@ -1,4 +1,4 @@
-const CACHE = "payroll-v8";
+const CACHE = "payroll-v9";
 const ASSETS = [
   "./index.html",
   "./manifest.json",

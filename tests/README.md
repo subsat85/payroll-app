@@ -17,6 +17,7 @@ Environment variables:
 | Variable | Effect |
 |---|---|
 | `RM=1` | Run with `prefers-reduced-motion: reduce` (the runner already does this for `safety` and `mobile`). |
+| `APP_LANG=en` | Run with the English (LTR) interface (the runner already does this for `security` and `mobile`). |
 | `CHROMIUM_PATH` | Use a preinstalled Chromium binary instead of Playwright's download. |
 | `PLAYWRIGHT_BROWSERS_PATH` | Standard Playwright browser cache location. |
 
@@ -30,6 +31,7 @@ Environment variables:
 | `mobile.test.js` | 44px touch targets, sheets on short screens, swipe-to-close, backdrop tap, time fields, scrolling above the bottom bar, dark-mode button contrast. |
 | `animation.test.js` | Sheet open/close/interrupt/swipe, non-blocking close (taps during the exit animation reach the page), toast undo bar and long-name toasts, check-in and delivered feedback (incl. dimmed contrast), month direction without sideways scroll, instant tabs, transform/opacity-only audit, reduced-motion fallbacks at 320/375/390px, and the confirm-sheet close-event race. |
 | `security.test.js` | Planted HTML/script payloads in every user-controlled field (IDs, names, notes, times, settings, snapshots) across every screen and sheet; hostile-ID backups rejected; static audit of attribute interpolations. |
+| `i18n.test.js` | English UI: every screen, sheet, confirm, alert and toast fully translated at 320/375/390px in light and dark; LTR mirroring (arrows, status bars, currency, negative numbers, month slide); stored values stay Arabic; payroll identical in both languages and to the oracle; language switch persists outside payroll data. |
 | `schema.test.js` | `schemaVersion` + migration runner, fresh install, legacy data loading unchanged, newer-version read-only, corrupt-data preservation, and persistent alerts (save failure, storage full, restore failure, no storage). |
 
 ## Shared files

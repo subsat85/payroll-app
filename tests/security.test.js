@@ -78,14 +78,28 @@ function hostile(){
   ok('no page errors', !p.errs.length, p.errs.join(' | '));
   await b.close();
 
+  // ${...} expressions with balanced braces (placeholders like '{0}' contain braces)
+  function interps(str){
+    const out = []; let i = 0;
+    while((i = str.indexOf('${', i)) >= 0){ let d = 1, j = i + 2; while(j < str.length && d){ if(str[j] === '{') d++; else if(str[j] === '}') d--; j++; } out.push(str.slice(i + 2, j - 1).trim()); i = j; }
+    return out;
+  }
+  // L('fixed text', args…) returns translator-controlled text; it is safe in an attribute when every arg is safe.
+  function safeExpr(e, SAFE){
+    if(/^(esc|CSS\.escape)\(/.test(e) || SAFE.has(e)) return true;
+    // cond ? "constant" : "constant" — only fixed text can reach the HTML
+    if(/^[^?]+\?\s*("[^"$`]*"|'[^'$`]*')\s*:\s*("[^"$`]*"|'[^'$`]*')$/.test(e)) return true;
+    const m = e.match(/^L\('[^']*'((?:,\s*[^,]+)*)\)$/);
+    return !!m && (m[1] ? m[1].split(',').slice(1).map(x => x.trim()).every(x => safeExpr(x, SAFE)) : true);
+  }
   // Static audit: every ${...} inside an HTML attribute value must be escaped or provably safe (numbers/constants).
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const js = html.slice(html.indexOf('<script>'));
   const SAFE = new Set(['HUES[h % HUES.length]','T[2]','cls','d','day','go','i','kind','label','name','opts.set','sign(netMin)','sign(p.attPay)','sign(s.otPay)','st','isCurMonth() ? now().getDate() : nd']);
   const unsafe = [];
-  for(const m of js.matchAll(/([\w-]+)="([^"<>]*?\$\{[^"<>]*?)"/g))
-    for(const e of [...m[2].matchAll(/\$\{([^}]*)\}/g)].map(x => x[1].trim()))
-      if(!/^(esc|CSS\.escape)\(/.test(e) && !SAFE.has(e)) unsafe.push(`${m[1]}="\${${e}}"`);
+  for(const m of js.matchAll(/([\w-]+)="((?:[^"<>$]|\$(?!\{)|\$\{(?:[^{}]|\{[^{}]*\})*\})*\$\{(?:[^{}]|\{[^{}]*\})*\}(?:[^"<>$]|\$(?!\{)|\$\{(?:[^{}]|\{[^{}]*\})*\})*)"/g))
+    for(const e of interps(m[2]))
+      if(!safeExpr(e, SAFE)) unsafe.push(`${m[1]}="\${${e}}"`);
   ok('static audit: no unescaped attribute interpolation', unsafe.length === 0, unsafe.join(', '));
   done();
 })().catch(e => { console.error(e); process.exit(1); });

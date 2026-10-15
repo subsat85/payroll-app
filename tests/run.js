@@ -4,18 +4,21 @@
 // Some suites also run a second time with prefers-reduced-motion (RM=1), since sheets/toasts behave differently.
 const { spawnSync } = require('child_process');
 const path = require('path');
-const SUITES = ['calculations', 'safety', 'rtl', 'mobile', 'animation', 'security', 'schema'];
+const SUITES = ['calculations', 'safety', 'rtl', 'mobile', 'animation', 'security', 'schema', 'i18n'];
 const RM_TOO = new Set(['safety', 'mobile']);
+const EN_TOO = new Set(['security', 'mobile']);   // also run with the English (LTR) UI
 const only = process.argv.slice(2);
 let pass = 0, fail = 0; const failed = [];
 for(const s of SUITES.filter(s => !only.length || only.includes(s))){
-  for(const rm of RM_TOO.has(s) ? [false, true] : [false]){
-    const r = spawnSync(process.execPath, [path.join(__dirname, `${s}.test.js`)], { encoding: 'utf8', env: { ...process.env, ...(rm ? { RM: '1' } : {}) }, timeout: 600000 });
+  const variants = [{}].concat(RM_TOO.has(s) ? [{ RM: '1' }] : [], EN_TOO.has(s) ? [{ APP_LANG: 'en' }] : []);
+  for(const v of variants){
+    const rm = !!v.RM, label = v.RM ? ' · reduced-motion' : v.APP_LANG ? ' · English' : '';
+    const r = spawnSync(process.execPath, [path.join(__dirname, `${s}.test.js`)], { encoding: 'utf8', env: { ...process.env, ...v }, timeout: 600000 });
     const out = (r.stdout || '') + (r.stderr || '');
-    process.stdout.write(rm ? out.replace(`[${s}]`, `[${s} · reduced-motion]`) : out);
+    process.stdout.write(out.replace(`[${s}]`, `[${s}${label}]`));
     const m = out.match(/PASS (\d+)\s+FAIL (\d+)/);
     if(m){ pass += +m[1]; fail += +m[2]; }
-    if(r.status !== 0 || !m){ failed.push(s + (rm ? ' (RM)' : '')); if(!m) fail++; }
+    if(r.status !== 0 || !m){ failed.push(s + label); if(!m) fail++; }
   }
 }
 console.log(`\nTOTAL  PASS ${pass}  FAIL ${fail}${failed.length ? `  — failing: ${failed.join(', ')}` : ''}`);

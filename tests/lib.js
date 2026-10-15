@@ -23,7 +23,7 @@ function suite(name){
   };
 }
 
-// Opens the app with the given saved data and UI state. RM=1 runs with prefers-reduced-motion.
+// Opens the app with the given saved data and UI state. RM=1 runs with prefers-reduced-motion; APP_LANG=en runs in English.
 async function fresh(ctx, data, ui){
   const p = await ctx.newPage();
   await p.emulateMedia({ reducedMotion: process.env.RM ? 'reduce' : 'no-preference' });
@@ -31,7 +31,7 @@ async function fresh(ctx, data, ui){
   p.on('pageerror', e => p.errs.push(e.message));
   p.on('console', m => m.type() === 'error' && p.errs.push(m.text()));
   await p.goto(APP_URL);
-  await p.evaluate(([d, u]) => { localStorage.clear(); if(d) localStorage.setItem('payroll-app-v1', JSON.stringify(d)); sessionStorage.setItem('payroll-ui', JSON.stringify(u || { tab: 'home' })); }, [data, ui]);
+  await p.evaluate(([d, u, lang]) => { localStorage.clear(); if(d) localStorage.setItem('payroll-app-v1', JSON.stringify(d)); if(lang) localStorage.setItem('payroll-lang', lang); sessionStorage.setItem('payroll-ui', JSON.stringify(u || { tab: 'home' })); }, [data, ui, process.env.APP_LANG || null]);
   await p.reload();
   return p;
 }

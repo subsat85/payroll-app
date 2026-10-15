@@ -32,6 +32,12 @@
   }
 }
 [hidden]{display:none!important}
+/* English (LTR): mirror direction-specific details; everything else uses logical start/end */
+:root[dir=ltr] .dirx{transform:scaleX(-1)}
+:root[dir=ltr] select{background-position:right 10px center;padding-left:12px;padding-right:32px}
+:root[dir=ltr] .tf select{padding-right:12px}
+:root[dir=ltr] .toast .bar{transform-origin:left center}
+:root[dir=ltr] .day::before{border-radius:3px 0 0 3px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"SF Arabic","Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;font-size:var(--fs-sm);line-height:1.5}
 bdi,.num{font-variant-numeric:tabular-nums}
@@ -130,7 +136,7 @@ input[type=checkbox]:checked{background:var(--brand-fill) url("data:image/svg+xm
 .row .info{flex:1;min-width:0}
 .row .info b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row .info small{display:block;color:var(--muted);font-size:var(--fs-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .end{text-align:left;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .end{text-align:end;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .row-btn{width:100%;border:0;background:none;font:inherit;color:inherit;text-align:start;cursor:pointer}
 .row-btn:active{background:var(--surface-2)}
 .av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:var(--fs-sm);flex:0 0 auto;background:hsl(var(--h) var(--av-s) var(--av-l));color:hsl(var(--h) 55% var(--av-fl))}
@@ -178,7 +184,7 @@ input[type=checkbox]:checked{background:var(--brand-fill) url("data:image/svg+xm
 .pcard .head b{display:block;font-weight:650}
 .pcard .head small{color:var(--muted);font-size:var(--fs-xs)}
 dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:6px 0;font-variant-numeric:tabular-nums;font-size:var(--fs-sm)}
-dt{color:var(--ink-2)} dd{margin:0;text-align:left}
+dt{color:var(--ink-2)} dd{margin:0;text-align:end}
 .net{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
 .net span:first-child{color:var(--ink-2);font-weight:600}
 .net span:last-child{font-size:var(--fs-lg);font-weight:700}
@@ -186,7 +192,7 @@ dt{color:var(--ink-2)} dd{margin:0;text-align:left}
 .pcard .foot .grow{flex:1}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 .tbl{overflow-x:auto}
-th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:start;white-space:nowrap}
 th{font-size:var(--fs-xs);color:var(--muted);font-weight:600;background:var(--surface)}
 tbody tr:last-child td{border-bottom:0}
 tfoot td{font-weight:700;border-top:1px solid var(--line);border-bottom:0}
@@ -291,11 +297,12 @@ dialog[open]::backdrop{animation:bd-in .2s ease-out}
   <symbol id="i-sync" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7Z"/><path d="M14 3v4h4"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/></symbol>
 </svg>
 
 <header>
-  <button class="icon-btn" id="hdrBack" aria-label="رجوع" hidden><svg class="ico"><use href="#i-right"/></svg></button>
+  <button class="icon-btn" id="hdrBack" aria-label="رجوع" hidden><svg class="ico dirx"><use href="#i-right"/></svg></button>
   <div class="hdr-t"><h1 id="hdrTitle">الرواتب والدوام</h1><small id="hdrSub"></small></div>
   <div id="hdrAct"></div>
 </header>
@@ -315,10 +322,445 @@ dialog[open]::backdrop{animation:bd-in .2s ease-out}
 
 <script>
 "use strict";
+/* ========== اللغة ==========
+   العربية افتراضياً. كل نص في الواجهة يمرّ عبر L("النص العربي", ...قيم): المفتاح هو النص العربي نفسه،
+   وترجمته الإنجليزية في القاموس EN. {0} {1}… أماكن القيم، و{0|مفرد|جمع} لاختيار صيغة الجمع بالإنجليزية.
+   تفضيل اللغة يُحفظ على الجهاز (payroll-lang) وليس داخل بيانات الرواتب، فلا يتغيّر تنسيق البيانات. */
+const LANG = (() => { try{ return localStorage.getItem("payroll-lang") === "en" ? "en" : "ar"; }catch(e){ return "ar"; } })();
+const EN = {
+" · تُخصم من الراتب": " · deducted from salary",
+" · منتهية": " · ended",
+" إذا أدخلت بيانات سابقاً في Safari فهي منفصلة عن هذا التطبيق — انسخها من هناك والصقها هنا.": " If you entered data in Safari before, it is separate from this app — copy it there and paste it here.",
+" الاحتساب التلقائي متوقف من الإعدادات العامة.": " Automatic calculation is turned off in the general settings.",
+" س": " h",
+" على iPhone: إذا أضفت التطبيق للشاشة الرئيسية فستكون له ذاكرة منفصلة عن Safari.": " On iPhone, the app added to the Home Screen has storage separate from Safari.",
+" — وتم تجاهل الترحيل اليدوي السابق لهذا الشهر حتى لا يُحتسب مرتين": " — the earlier manual posting for this month is ignored so it is not counted twice",
+"(منها سلف": "(incl. advances",
+"<br>سيُستبدل الترحيل السابق.": "<br>The previous posting will be replaced.",
+"English": "English",
+"{0} إجازة": "{0} Leave",
+"{0} إضافة موظف": "{0} Add employee",
+"{0} احفظ نسخة حتى لا تضيع البيانات إذا حُذف التطبيق أو تغيّر الجوال.": "{0} Save a backup so nothing is lost if the app is deleted or you change phones.",
+"{0} القسيمة": "{0} Payslip",
+"{0} انصراف": "{0} Check out",
+"{0} ترحيل للرواتب": "{0} Post to payroll",
+"{0} تعبئة سريعة": "{0} Quick fill",
+"{0} تعديل": "{0} Edit",
+"{0} تغيير بدون نسخة احتياطية": "{0} {0|change|changes} without a backup",
+"{0} تغيير لم يُحفظ في نسخة احتياطية": "{0} {0|change|changes} not in a backup yet",
+"{0} تلقائي": "{0} auto",
+"{0} حضور": "{0} Check in",
+"{0} حفظ ملف": "{0} Save file",
+"{0} حفظ ملف نسخة": "{0} Save backup file",
+"{0} سجل": "{0} {0|record|records}",
+"{0} سنة": "{0} {0|year|years}",
+"{0} طباعة": "{0} Print",
+"{0} لصق من الحافظة": "{0} Paste from clipboard",
+"{0} مشاركة": "{0} Share",
+"{0} موظف": "{0} {0|employee|employees}",
+"{0} موظف · {1} سلفة · {2} إجازة · {3} شهر دوام": "{0} {0|employee|employees} · {1} {1|advance|advances} · {2} {2|leave|leaves} · {3} attendance {3|month|months}",
+"{0} نسخ": "{0} Copy",
+"{0} نسخ كل البيانات": "{0} Copy all data",
+"{0} نشط من": "{0} active of",
+"{0} يوم": "{0} {0|day|days}",
+"{0} يوم استحقاق": "{0} {0|day|days} paid",
+"{0}إجازة": "{0}Leave",
+"{0}الدوام": "{0}Attendance",
+"{0}القسيمة": "{0}Payslip",
+"{0}ساعات": "{0}Hours",
+"{0}سلفة": "{0}Advance",
+"{0}موظف": "{0}Employee",
+"آخر": "last",
+"آخر الإجازات": "Recent leaves",
+"آخر السلف": "Recent advances",
+"آخر نسخة احتياطية": "Last backup",
+"آخر نسخة قبل {0} يوم": "Last backup {0} {0|day|days} ago",
+"آخر نسخة قبل {0} يوم.": "Last backup {0} {0|day|days} ago.",
+"أبريل": "April",
+"أجر إضافي": "Overtime pay",
+"أجر الإضافي اليدوي": "Manual overtime pay",
+"أجر الدوام": "Attendance pay",
+"أخرى": "Other",
+"أغسطس": "August",
+"أكتوبر": "October",
+"أكمل: ": "Complete: ",
+"أنت تستخدم": "You are using",
+"أهلاً بك": "Welcome",
+"أو الصق النص هنا يدوياً": "or paste the text here manually",
+"أيام الإجازات المسجّلة تُتخطّى تلقائياً. يمكنك بعدها تعديل أي يوم بالضغط عليه.": "Recorded leave days are skipped automatically. You can then tap any day to edit it.",
+"أيام الاستحقاق": "Paid days",
+"أيام الشهر في الحساب": "Days per month (for pay)",
+"أيام غياب": "Absence days",
+"أيام مسجّلة": "Days logged",
+"أُلغي التسليم": "Marked as not delivered",
+"إجازات": "Leaves",
+"إجازة": "Leave",
+"إجازة بدون راتب ({0} يوم)": "Unpaid leave ({0} {0|day|days})",
+"إجازة بدون راتب (يوم)": "Unpaid leave (days)",
+"إجازة جديدة": "New leave",
+"إجمالي أجر الإضافي": "Total overtime pay",
+"إجمالي الخصومات": "Total deductions",
+"إجمالي الساعات اليدوية": "Total manual hours",
+"إجمالي السلف": "Total advances",
+"إصدار تنسيق البيانات في الملف غير معروف.": "The data format version in this file is unknown.",
+"إضافة أول موظف": "Add your first employee",
+"إضافة سريعة": "Quick add",
+"إضافي": "Overtime",
+"إضافي ({0} س)": "Overtime ({0} h)",
+"إضافي (س)": "Overtime (h)",
+"إضافي {0} ساعة": "Overtime {0} {0|hour|hours}",
+"إضافي ومكافآت": "Overtime & bonuses",
+"إعدادات دوام الشهر": "Month attendance settings",
+"إغلاق": "Close",
+"إغلاق التنبيه": "Dismiss alert",
+"إلغاء": "Cancel",
+"إلى": "To",
+"إلى يوم": "To day",
+"إنهاء الخدمة وملاحظات": "End of service & notes",
+"ابدأ من الصفر": "Start from scratch",
+"ابدأ من جديد": "Start over",
+"اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ {0} ÷ ساعات العمل": "Leave the rate empty to calculate it automatically: salary ÷ {0} ÷ work hours",
+"احتساب الدوام في الرواتب تلقائياً": "Include attendance in payroll automatically",
+"احتساب هذا الشهر في الرواتب تلقائياً": "Include this month in payroll automatically",
+"اختر الحضور والانصراف": "Choose check-in and check-out",
+"اختر الموظف": "Choose employee",
+"استبدال البيانات الحالية ببيانات منسوخة": "Replace current data with copied data",
+"استخدم «تنزيل البيانات كما هي» من التنبيه": "Use “Download data as-is” in the alert",
+"استرجاع": "Restore",
+"استعادة": "Restore",
+"استعادة البيانات": "Restore data",
+"استعادة من ملف": "Restore from file",
+"استعادة من ملف نسخة احتياطية": "Restore from a backup file",
+"استعادة نسخة": "Restore a backup",
+"استقالة": "Resignation",
+"اسم المنشأة (يظهر في القسيمة)": "Business name (shown on payslips)",
+"اسم الموظف": "Employee name",
+"اضغط مطولاً على النص ← تحديد الكل ← نسخ، ثم افتح التطبيق الآخر واختر «لصق البيانات».": "Long-press the text → Select All → Copy, then open the other app and choose “Paste data”.",
+"الآن": "Now",
+"الأحد": "Sunday",
+"الأربعاء": "Wednesday",
+"الأرصدة": "Balances",
+"الأرصدة والإجازات بدون راتب": "Balances and unpaid leave",
+"الأساسي": "Base",
+"الأساسي − الخصومات + الإضافي + المكافآت.": "Base − deductions + overtime + bonuses.",
+"الأيام": "Days",
+"الأيام الفارغة فقط": "Empty days only",
+"الإثنين": "Monday",
+"الإجازات": "Leaves",
+"الإجازة «بدون راتب» تُخصم تلقائياً من راتب الشهر.": "“Unpaid” leave is deducted from the month’s salary automatically.",
+"الإجازة السنوية (يوم)": "Annual leave (days)",
+"الإجمالي": "Total",
+"الإضافي": "Overtime",
+"الإضافي:": "Overtime:",
+"الإعدادات وحماية البيانات": "Settings & data protection",
+"الاستقطاعات": "Deductions",
+"الانصراف": "Check-out",
+"البدء من جديد": "Start over",
+"البيانات الجديدة:": "New data:",
+"البيانات الحالية من إصدار أحدث؛ حدّث التطبيق قبل الاستعادة حتى لا تُستبدل.": "The current data is from a newer version; update the app before restoring so it is not replaced.",
+"البيانات من إصدار أحدث من التطبيق": "Data is from a newer app version",
+"التاريخ": "Date",
+"التالي": "Next",
+"التطبيق المضاف للشاشة الرئيسية له ذاكرة منفصلة. انسخ البيانات والصقها داخله.": "The app on your Home Screen has separate storage. Copy your data and paste it inside the app.",
+"التطبيق على الشاشة الرئيسية": "Home Screen app",
+"الثلاثاء": "Tuesday",
+"الجمعة": "Friday",
+"الحضور": "Check-in",
+"الحقول المطلوبة": "required fields",
+"الخصومات": "Deductions",
+"الخصومات:": "Deductions:",
+"الخميس": "Thursday",
+"الدقيقة": "minute",
+"الدوام": "Attendance",
+"الدوام {0} ساعة": "Attendance {0} h",
+"الذاكرة المحلية غير متاحة (ربما وضع التصفح الخاص). أي بيانات تُدخلها ستضيع عند الإغلاق.": "Local storage is unavailable (maybe private browsing). Anything you enter will be lost when you close the app.",
+"الرئيسية": "Home",
+"الراتب ÷ أيام الشهر · خصم التأخير": "salary ÷ days per month · Late deduction",
+"الراتب الأساسي": "Base salary",
+"الراتب الأساسي:": "Base salary:",
+"الراتب الشهري": "Monthly salary",
+"الراتب اليومي": "Daily rate",
+"الراتب اليومي ÷ ساعات العمل × ساعات التأخير · أجر الإضافي": "daily rate ÷ work hours × late hours · Overtime pay",
+"الرصيد": "Balance",
+"الرصيد الحالي {0} يوم": "current balance {0} {0|day|days}",
+"الرقم الوطني": "National ID",
+"الرواتب": "Payroll",
+"الرواتب والدوام": "Payroll & Attendance",
+"السابق": "Previous",
+"الساعات الإضافية": "Overtime hours",
+"الساعات السالبة تُخصم بنفس سعر الإضافي. ساعات الدوام تُحتسب تلقائياً من شاشة الدوام ولا تحتاج إدخالاً هنا.": "Negative hours are deducted at the overtime rate. Attendance hours are calculated automatically from the Attendance screen and do not need to be entered here.",
+"الساعات المطلوبة يومياً": "Required hours per day",
+"الساعة": "hour",
+"السبت": "Saturday",
+"السلف": "Advances",
+"السلف والإجازات بدون راتب وساعات الدوام تُحسب تلقائياً من سجلاتها.": "Advances, unpaid leave and attendance hours are calculated automatically from their records.",
+"السنة": "Year",
+"السنوية {0} يوم": "annual {0} {0|day|days}",
+"الشهر": "Month",
+"الصافي": "Net",
+"الصافي:": "Net:",
+"الصق هنا البيانات التي نسختها من المتصفح أو من جهاز آخر.": "Paste the data you copied from the browser or another device.",
+"الصق يدوياً في المربع": "Paste manually into the box",
+"الضمان": "Social security",
+"الضمان الاجتماعي": "Social security",
+"العربية": "العربية",
+"العملة": "Currency",
+"الفترة": "Period",
+"الفعلية": "Actual",
+"القيمة": "Value",
+"اللغة": "اللغة",
+"اللقطات تحميك من الأخطاء (حذف أو استعادة خاطئة)، لكنها على نفس الجهاز — لا تغني عن ملف النسخة الاحتياطية.": "Snapshots protect you from mistakes (a wrong delete or restore), but they live on this device — they do not replace a backup file.",
+"المبلغ": "Amount",
+"المتصفح": "Browser",
+"المزيد": "More",
+"المستحقات": "Earnings",
+"المستخدم": "Used",
+"المسمى": "Title",
+"المسمى الوظيفي": "Job title",
+"المطلوبة": "Required",
+"المطلوبة لهذا اليوم": "Required for this day",
+"المعتاد": "Usual",
+"الملخص السنوي": "Annual summary",
+"الملف يحتوي {0} معرّفاً غير صالح، وقد يكون تالفاً أو معدّلاً، فلم يُستورد.": "The file contains {0} invalid {0|ID|IDs} and may be damaged or altered, so it was not imported.",
+"الملف يُحفظ في «الملفات» أو تُرسله لنفسك. «نسخ» ثم «لصق» هو أسهل طريقة لنقل البيانات بين Safari والتطبيق أو بين جهازين.": "Save the file to Files or send it to yourself. “Copy” then “Paste” is the easiest way to move data between Safari and the app, or between two devices.",
+"الموظف": "Employee",
+"الموظف:": "Employee:",
+"الموظفين": "Employees",
+"النسخة من إصدار أحدث من التطبيق (تنسيق {0}). حدّث التطبيق أولاً.": "This backup is from a newer app version (format {0}). Update the app first.",
+"النص ليس نسخة احتياطية صالحة — تأكد أنك نسخت كل النص أو اخترت الملف الصحيح.": "This is not a valid backup — make sure you copied all of the text or picked the right file.",
+"النوع": "Type",
+"الهاتف": "Phone",
+"اليوم": "Today",
+"انتهاء عقد": "Contract ended",
+"انسخ هذا النص": "Copy this text",
+"انصراف": "Check out",
+"انصرف {0} · {1} ساعة": "Left {0} · {1} h",
+"بحث": "Search",
+"بحث بالاسم أو المسمى أو الهاتف": "Search by name, title or phone",
+"بدون راتب": "Unpaid",
+"بدون راتب {0} يوم": "Unpaid {0} {0|day|days}",
+"بدون)": "none)",
+"بياناتك تبقى على هذا الجهاز فقط": "Your data stays on this device only",
+"تأخير": "Late",
+"تأخير ({0} س)": "Late ({0} h)",
+"تأخير {0} ساعة": "Late {0} {0|hour|hours}",
+"تأكيد": "Confirm",
+"تاريخ التسليم": "Delivery date",
+"تاريخ التوظيف": "Hire date",
+"تاريخ انتهاء الخدمة": "End-of-service date",
+"تخزين دائم": "Persistent storage",
+"تخطّي يوم": "Skip",
+"تراجع": "Undo",
+"ترحيل": "Post",
+"ترحيل {0} ساعة ({1}) إلى رواتب {2}؟": "Post {0} {0|hour|hours} ({1}) to {2} payroll?",
+"ترحيل للرواتب": "Post to payroll",
+"تصدير": "Export",
+"تصدير كل البيانات إلى": "Export all data to",
+"تعبئة": "Fill",
+"تعبئة سريعة": "Quick fill",
+"تعديل ": "Edit ",
+"تعديل إجازة": "Edit leave",
+"تعديل البيانات": "Edit details",
+"تعديل موظف": "Edit employee",
+"تعذّر النسخ": "Could not copy",
+"تعذّر تحميل مكتبة Excel — تحقق من الاتصال": "Could not load the Excel library — check your connection",
+"تعذّرت قراءة البيانات المحفوظة": "Saved data could not be read",
+"تعذّرت قراءة الملف من الجهاز.": "The file could not be read from the device.",
+"تغييرات بعد آخر نسخة": "Changes since last backup",
+"تلقائية يومية": "Daily automatic",
+"تم": "Done",
+"تم التراجع": "Undone",
+"تم الترحيل إلى الرواتب": "Posted to payroll",
+"تم التسليم": "Delivered",
+"تم التسليم بتاريخ": "Delivered on",
+"تم الحذف": "Deleted",
+"تم الحفظ": "Saved",
+"تم المسح": "Cleared",
+"تم النسخ": "Copied",
+"تم تسليم راتب": "Salary delivered:",
+"تم تنزيل ملف النسخة": "Backup file downloaded",
+"تم حذف الموظف": "Employee deleted",
+"تم حذف كل البيانات": "All data deleted",
+"تم مسح اليوم": "Day cleared",
+"تم نسخ كل البيانات — الصقها في التطبيق الآخر": "All data copied — paste it in the other app",
+"تم — احفظ الملف في «الملفات» أو أرسله لنفسك": "Done — save the file to Files or send it to yourself",
+"تمت الاستعادة ✓": "Restored ✓",
+"تمت تعبئة {0} يوم": "Filled {0} {0|day|days}",
+"تنزيل البيانات كما هي": "Download data as-is",
+"توقيع الموظف: ____________ &nbsp;&nbsp; توقيع الإدارة:": "Employee signature: ____________ &nbsp;&nbsp; Management signature:",
+"تُؤخذ لقطة قبل الحذف": "A snapshot is taken first",
+"تُؤخذ لقطة يومياً، وقبل أي استعادة أو حذف.": "A snapshot is taken daily, and before any restore or delete.",
+"تُحفظ لقطة من البيانات الحالية قبل الاستبدال.": "A snapshot of the current data is saved before replacing it.",
+"جارٍ التجهيز…": "Preparing…",
+"حاضر منذ": "In since",
+"حاضرون اليوم": "Present today",
+"حذف": "Delete",
+"حذف «{0}» مع كل سجلاته (السلف، الإضافي، الإجازات، الدوام، الرواتب)؟": "Delete “{0}” and all their records (advances, overtime, leaves, attendance, payroll)?",
+"حذف الكل": "Delete all",
+"حذف الموظف وكل سجلاته": "Delete employee and all records",
+"حذف كل البيانات": "Delete all data",
+"حذف موظف": "Delete employee",
+"حضور": "Check in",
+"حضور اليوم": "Today’s attendance",
+"حفظ": "Save",
+"حفظ ملف نسخة": "Save backup file",
+"حفظها كأوقات معتادة": "Save as usual times",
+"حماية البيانات": "Data protection",
+"حُذفت اللقطات التلقائية لإفساح المجال وحُفظت بياناتك. احفظ نسخة احتياطية الآن.": "Automatic snapshots were removed to make room and your data was saved. Save a backup now.",
+"حُفظت هذه البيانات بإصدار تنسيق {0}، وهذا التطبيق يدعم حتى {1}. فُتحت للقراءة فقط حتى لا تتلف — حدّث التطبيق (أغلقه وافتحه مرتين).": "This data was saved with format version {0}; this app supports up to {1}. It is open read-only so it is not damaged — update the app (close and reopen it twice).",
+"خصم تأخير": "Late deduction",
+"خصم غياب": "Absence deduction",
+"خصمها": "Its deduction",
+"خصومات أخرى": "Other deductions",
+"خيارات": "Options",
+"د.أ": "JOD",
+"دوام": "Attendance:",
+"ديسمبر": "December",
+"ذاكرة الجهاز ممتلئة": "Device storage is full",
+"ذاكرة الجهاز ممتلئة أو غير متاحة. البيانات ما زالت مفتوحة أمامك — احفظ نسخة احتياطية الآن حتى لا تضيع.": "Device storage is full or unavailable. Your data is still open — save a backup now so it is not lost.",
+"رجوع": "Back",
+"رصيد الإجازة": "Leave balance",
+"رقم": "No.",
+"رواتب": "payroll",
+"رواتب لم تُسلَّم": "Undelivered salaries",
+"رواتب-كل-البيانات.": "payroll-all-data.",
+"زيادة": "Over",
+"ساعات": "Hours",
+"ساعات إضافي يدوية": "Manual overtime hours",
+"ساعات إضافية": "Overtime hours",
+"ساعات الدوام (صافي)": "Attendance hours (net)",
+"ساعات العمل اليومية": "Daily work hours",
+"ساعات تأخير": "Late hours",
+"ساعات فعلية": "Actual hours",
+"سبب الإنهاء": "End reason",
+"سبتمبر": "September",
+"ستُستبدل الحالية:": "Will replace current:",
+"سعر الساعة": "Hourly rate",
+"سعر الساعة الإضافية": "Overtime hourly rate",
+"سعر ساعة الإضافي": "Overtime hourly rate",
+"سلف": "Advances",
+"سلف الشهر": "Advances this month",
+"سلفة": "Advance",
+"سنوية": "Annual",
+"سيبدأ التطبيق ببيانات فارغة. النسخة غير المقروءة تبقى محفوظة جانباً ويمكن تنزيلها لاحقاً.": "The app will start with empty data. The unreadable copy is kept aside and can be downloaded later.",
+"سيتم حذف كل الموظفين والرواتب والدوام والسلف والإجازات. تُحفظ لقطة قبل الحذف يمكنك استرجاعها من الإعدادات.": "All employees, payroll, attendance, advances and leaves will be deleted. A snapshot is saved first and can be restored from Settings.",
+"سُلِّم": "Paid",
+"شهر كامل": "full month",
+"صافي": "Net",
+"صافي الراتب": "Net salary",
+"صافي الرواتب": "Net payroll",
+"صافي الساعات (زيادة − نقص)": "Net hours (over − short)",
+"صافي رواتب": "Net payroll ·",
+"طارئة": "Emergency",
+"طباعة": "Print",
+"عام": "General",
+"عدد الساعات (سالب للنقص)": "Hours (negative for a shortfall)",
+"عطلة": "Holiday",
+"عطلة (لا ساعات مطلوبة)": "Holiday (no hours required)",
+"عند التفعيل يُحسب فرق ساعات الدوام (زيادة − نقص) في راتب الشهر مباشرة، ويتحدّث كلما عدّلت الدوام. يمكن إيقافه لشهر معيّن من خيارات شاشة الدوام.": "When on, the attendance difference (over − short) goes straight into the month’s pay and updates whenever you edit attendance. You can turn it off for a single month from the Attendance options.",
+"عودة": "Back",
+"غياب": "Absence",
+"غياب ({0} يوم)": "Absence ({0} {0|day|days})",
+"غياب {0} يوم": "Absent {0} {0|day|days}",
+"غير مفعّل": "Off",
+"فبراير": "February",
+"فشلت الاستعادة — لم تتغيّر بياناتك": "Restore failed — your data was not changed",
+"فصل": "Dismissal",
+"في إجازة": "On leave",
+"قبل {0} يوم": "{0} {0|day|days} ago",
+"قبل الاستعادة": "Before restore",
+"قبل حذف الكل": "Before deleting all",
+"قبل حذف موظف": "Before deleting an employee",
+"قسيمة راتب": "Payslip",
+"لا توجد إجازات في": "No leaves in",
+"لا توجد رواتب في": "No payroll in",
+"لا توجد سجلات في هذا الشهر.": "No records this month.",
+"لا تُرفع إلى أي خادم. احفظ نسخة احتياطية بانتظام من «المزيد ← الإعدادات».": "Nothing is uploaded to a server. Save a backup regularly from More → Settings.",
+"لا نتائج": "No results",
+"لا نتائج لـ": "No results for",
+"لا يمكن الحفظ في هذا المتصفح": "Cannot save in this browser",
+"لا يوجد": "None",
+"لا يوجد موظفون بعد.": "No employees yet.",
+"لا يوجد موظفون على رأس عملهم في": "No employees on staff in",
+"لا يوجد موظفون نشطون.": "No active employees.",
+"لصق البيانات": "Paste data",
+"لصق بيانات منسوخة": "Paste copied data",
+"لقطات تلقائية على هذا الجهاز": "Automatic snapshots on this device",
+"للأرشفة أو المحاسب": "For archiving or your accountant",
+"لم تحفظ أي نسخة بعد.": "You have not saved a backup yet.",
+"لم تُحفظ آخر التغييرات على الجهاز": "Latest changes were not saved on this device",
+"لم تُحفظ نسخة بعد": "No backup saved yet",
+"لم يسجّل حضوراً": "Not checked in",
+"لم يُحذف شيء: حُفظت نسخة من البيانات كما هي، والحفظ متوقف حتى تقرّر. نزّلها وأرسلها للدعم، أو استعد نسخة احتياطية.": "Nothing was deleted: a copy of the data was kept as-is and saving is paused until you decide. Download it to send for support, or restore a backup.",
+"مارس": "March",
+"مايو": "May",
+"مثل آخر يوم": "Same as last day",
+"مدة مغادرة (يدوي)": "Time away (manual)",
+"مرضية": "Sick",
+"مستبدل بالدوام": "Replaced by attendance",
+"مسح": "Clear",
+"مسح اليوم": "Clear day",
+"مسح دوام الشهر": "Clear month attendance",
+"مسح كل أيام دوام {0} في {1}؟": "Clear all attendance days for {0} in {1}?",
+"مطابق": "On target",
+"معامل أجر الإضافي": "Overtime multiplier",
+"مغادرة مؤقتة وتعديل الساعات المطلوبة": "Time away & required-hours override",
+"مغادرة من": "Away from",
+"مفعّل": "On",
+"مكافآت": "Bonuses",
+"مكافآت / علاوات": "Bonuses / allowances",
+"مكافآت وعلاوات": "Bonuses & allowances",
+"مكافآت:": "Bonuses:",
+"مكان الحفظ": "Saved in",
+"ملاحظات": "Notes",
+"ملاحظة": "Note",
+"ملف نسخة احتياطية": "Backup file",
+"ملف ‎.json محفوظ سابقاً": "A previously saved .json file",
+"من": "From",
+"من Safari أو من جهاز آخر": "From Safari or another device",
+"من حاسبة الدوام": "From attendance calculator",
+"من يوم": "From day",
+"منتهية": "Ended",
+"منطقة الخطر": "Danger zone",
+"موظف جديد": "New employee",
+"موظفون نشطون": "Active employees",
+"ناقص": "Incomplete",
+"نسخ البيانات": "Copy data",
+"نسخة الرواتب": "Payroll backup",
+"نشط": "Active",
+"نظام بسيط للرواتب والدوام والسلف والإجازات.": "A simple system for payroll, attendance, advances and leaves.",
+"نفس سعر الساعة × المعامل · الصافي": "same hourly rate × multiplier · Net",
+"نقص": "Short",
+"نقص ساعات ({0} س)": "Hours short ({0} h)",
+"نوع الإجازة": "Leave type",
+"نوفمبر": "November",
+"هذه ليست بيانات تطبيق الرواتب.": "This is not payroll app data.",
+"وضع يدوي: لا يدخل في الرواتب إلا بالترحيل": "Manual mode: only counted in payroll after posting",
+"وفاة": "Death",
+"وقت الانصراف المعتاد": "Usual check-out time",
+"وقت الحضور المعتاد": "Usual check-in time",
+"يناير": "January",
+"يوليو": "July",
+"يوم": "day",
+"يوم العطلة الأسبوعية": "Weekly day off",
+"يونيو": "June",
+"يُحتسب تلقائياً في رواتب": "Included automatically in payroll for"
+};
+// قيم مخزّنة في البيانات (نوع الإجازة، سبب الإنهاء، العملة الافتراضية…) تبقى عربية ويُترجم عرضها فقط
+function lbl(v){ return LANG === "en" && typeof v === "string" && EN[v] != null ? EN[v] : v; }
+function L(key, ...args){
+  const s = LANG === "en" && EN[key] != null ? EN[key] : key;
+  return s.indexOf("{") < 0 ? s : s.replace(/\{(\d+)(?:\|([^|}]*)\|([^}]*))?\}/g, (m, i, one, many) => {
+    const a = args[+i];
+    if(one === undefined) return String(a);
+    const n = parseFloat(String(a).replace(/<[^>]*>/g, "").replace(/[^\d.\-]/g, ""));
+    return Math.abs(n) === 1 ? one : many;
+  });
+}
 /* ========== البيانات ========== */
 const KEY = "payroll-app-v1", SNAP_KEY = "payroll-app-snapshots", POST_TAG = "من حاسبة الدوام";
-const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const WEEKDAYS = ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const MONTHS = [L('يناير'),L('فبراير'),L('مارس'),L('أبريل'),L('مايو'),L('يونيو'),L('يوليو'),L('أغسطس'),L('سبتمبر'),L('أكتوبر'),L('نوفمبر'),L('ديسمبر')];
+const WEEKDAYS = [L('الأحد'),L('الإثنين'),L('الثلاثاء'),L('الأربعاء'),L('الخميس'),L('الجمعة'),L('السبت')];
 const END_REASONS = ["استقالة","فصل","انتهاء عقد","وفاة","أخرى"];
 const LEAVE_TYPES = ["سنوية","مرضية","بدون راتب","طارئة","أخرى"];
 /* ========== إصدار تنسيق البيانات ==========
@@ -346,12 +788,12 @@ let readOnly = null;                   // "corrupt" | "newer" | null — عند 
 function showAlert(key, a){ alerts.set(key, a); if(typeof renderAlerts === "function" && document.readyState !== "loading") renderAlerts(); }
 function clearAlert(key){ if(alerts.delete(key) && typeof renderAlerts === "function") renderAlerts(); }
 const ALERT = {
-  saveFailed: () => ({level:"error", title:"لم تُحفظ آخر التغييرات على الجهاز", text:"ذاكرة الجهاز ممتلئة أو غير متاحة. البيانات ما زالت مفتوحة أمامك — احفظ نسخة احتياطية الآن حتى لا تضيع.", actions:[{label:"حفظ ملف نسخة", act:"backup"},{label:"نسخ البيانات", act:"copy-data"}]}),
-  storageFull: () => ({level:"warn", title:"ذاكرة الجهاز ممتلئة", text:"حُذفت اللقطات التلقائية لإفساح المجال وحُفظت بياناتك. احفظ نسخة احتياطية الآن.", actions:[{label:"حفظ ملف نسخة", act:"backup"}]}),
-  corrupt: () => ({level:"error", title:"تعذّرت قراءة البيانات المحفوظة", text:"لم يُحذف شيء: حُفظت نسخة من البيانات كما هي، والحفظ متوقف حتى تقرّر. نزّلها وأرسلها للدعم، أو استعد نسخة احتياطية.", actions:[{label:"تنزيل البيانات كما هي", act:"download-raw"},{label:"استعادة نسخة", act:"paste-data"},{label:"البدء من جديد", act:"discard-corrupt"}]}),
-  newer: v => ({level:"error", title:"البيانات من إصدار أحدث من التطبيق", text:`حُفظت هذه البيانات بإصدار تنسيق ${Number(v) || "?"}، وهذا التطبيق يدعم حتى ${CURRENT_SCHEMA}. فُتحت للقراءة فقط حتى لا تتلف — حدّث التطبيق (أغلقه وافتحه مرتين).`, actions:[]}),
-  noStorage: () => ({level:"error", title:"لا يمكن الحفظ في هذا المتصفح", text:"الذاكرة المحلية غير متاحة (ربما وضع التصفح الخاص). أي بيانات تُدخلها ستضيع عند الإغلاق.", actions:[]}),
-  restoreFailed: reason => ({level:"error", title:"فشلت الاستعادة — لم تتغيّر بياناتك", text:esc(reason), actions:[]}),
+  saveFailed: () => ({level:"error", title:L('لم تُحفظ آخر التغييرات على الجهاز'), text:L('ذاكرة الجهاز ممتلئة أو غير متاحة. البيانات ما زالت مفتوحة أمامك — احفظ نسخة احتياطية الآن حتى لا تضيع.'), actions:[{label:L('حفظ ملف نسخة'), act:"backup"},{label:L('نسخ البيانات'), act:"copy-data"}]}),
+  storageFull: () => ({level:"warn", title:L('ذاكرة الجهاز ممتلئة'), text:L('حُذفت اللقطات التلقائية لإفساح المجال وحُفظت بياناتك. احفظ نسخة احتياطية الآن.'), actions:[{label:L('حفظ ملف نسخة'), act:"backup"}]}),
+  corrupt: () => ({level:"error", title:L('تعذّرت قراءة البيانات المحفوظة'), text:L('لم يُحذف شيء: حُفظت نسخة من البيانات كما هي، والحفظ متوقف حتى تقرّر. نزّلها وأرسلها للدعم، أو استعد نسخة احتياطية.'), actions:[{label:L('تنزيل البيانات كما هي'), act:"download-raw"},{label:L('استعادة نسخة'), act:"paste-data"},{label:L('البدء من جديد'), act:"discard-corrupt"}]}),
+  newer: v => ({level:"error", title:L('البيانات من إصدار أحدث من التطبيق'), text:`${L('حُفظت هذه البيانات بإصدار تنسيق {0}، وهذا التطبيق يدعم حتى {1}. فُتحت للقراءة فقط حتى لا تتلف — حدّث التطبيق (أغلقه وافتحه مرتين).', Number(v) || "?", CURRENT_SCHEMA)}`, actions:[]}),
+  noStorage: () => ({level:"error", title:L('لا يمكن الحفظ في هذا المتصفح'), text:L('الذاكرة المحلية غير متاحة (ربما وضع التصفح الخاص). أي بيانات تُدخلها ستضيع عند الإغلاق.'), actions:[]}),
+  restoreFailed: reason => ({level:"error", title:L('فشلت الاستعادة — لم تتغيّر بياناتك'), text:esc(reason), actions:[]}),
 };
 
 const DEFAULTS = {
@@ -415,12 +857,12 @@ const toLatin = v => {
 };
 const num = v => { const n = parseFloat(toLatin(v)); return isFinite(n) ? n : 0; };
 const fix = v => Math.round(v*100)/100;
-const ic = (name, cls="") => `<svg class="ico ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const ic = (name, cls="") => `<svg class="ico ${cls}${name === "left" || name === "right" ? " dirx" : ""}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 // الأرقام تُعرض باتجاه LTR حتى تظهر الإشارة السالبة في مكانها الصحيح
 const nb = v => `<bdi dir="ltr">${v}</bdi>`;
 const fmt2 = v => fix(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-const moneyText = v => fmt2(v) + " " + db.settings.currency;
-const money = v => `<span class="money">${nb(fmt2(v))}<span class="cur">${esc(db.settings.currency)}</span></span>`;
+const moneyText = v => fmt2(v) + " " + lbl(db.settings.currency);
+const money = v => `<span class="money">${nb(fmt2(v))}<span class="cur">${esc(lbl(db.settings.currency))}</span></span>`;
 const sign = v => v > 0.004 ? "pos" : v < -0.004 ? "neg" : "";
 const pad = n => String(n).padStart(2,"0");
 const ym = (y,m) => `${y}-${pad(m)}`;
@@ -443,8 +885,8 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 let undoSnap = null;
 function toast(t, undo){
   const el = $("#toast");
-  el.innerHTML = `<span class="msg">${esc(t)}</span>` + (undo ? `<button id="undoBtn">تراجع</button>` : "");
-  if(undo) $("#undoBtn").onclick = () => { if(undoSnap){ db = undoSnap; undoSnap = null; save(); render(); toast("تم التراجع"); } };
+  el.innerHTML = `<span class="msg">${esc(t)}</span>` + (undo ? `<button id="undoBtn">${L('تراجع')}</button>` : "");
+  if(undo) $("#undoBtn").onclick = () => { if(undoSnap){ db = undoSnap; undoSnap = null; save(); render(); toast(L('تم التراجع')); } };
   const ms = undo ? 5000 : 2000;
   if(undo){ const bar = document.createElement("span"); bar.className = "bar"; el.appendChild(bar);
     motion(bar, [{transform:"scaleX(1)"},{transform:"scaleX(0)"}], {duration:ms, easing:"linear", fill:"forwards"}); }
@@ -462,7 +904,7 @@ const state = { tab:"home", y:now().getFullYear(), m:now().getMonth()+1, attEmp:
 try{ Object.assign(state, JSON.parse(sessionStorage.getItem("payroll-ui")||"{}")); }catch(e){}
 const keepUI = () => { try{ sessionStorage.setItem("payroll-ui", JSON.stringify(state)); }catch(e){} };
 
-const monthPicker = yearOnly => `<div class="mp" role="group" aria-label="الفترة"><button data-mstep="-1" aria-label="السابق">${ic("right","sm")}</button><span>${yearOnly?"":MONTHS[state.m-1]+" "}${state.y}</span><button data-mstep="1" aria-label="التالي">${ic("left","sm")}</button></div>`;
+const monthPicker = yearOnly => `<div class="mp" role="group" aria-label="${L('الفترة')}"><button data-mstep="-1" aria-label="${L('السابق')}">${ic("right","sm")}</button><span>${yearOnly?"":MONTHS[state.m-1]+" "}${state.y}</span><button data-mstep="1" aria-label="${L('التالي')}">${ic("left","sm")}</button></div>`;
 const kv = (label, value, cls="") => `<div class="kv"><span>${label}</span><b class="${cls}">${value}</b></div>`;
 const onLeaveOn = (empId, ds) => db.leaves.find(l => l.empId===empId && l.from<=ds && (l.to||l.from)>=ds);
 
@@ -479,7 +921,7 @@ function dailySnapshot(){ if(lastSnapDay !== today() && db.employees.length){ ta
 const daysSinceBackup = () => db.lastBackup ? Math.round((parseDate(today()) - parseDate(db.lastBackup))/DAY) : null;
 const backupDue = () => db.employees.length && (db.changes||0) > 0 && (db.lastBackup == null || daysSinceBackup() >= 3 || db.changes >= 20);
 function updateDot(){ const d = $("#moreDot"); if(d) d.hidden = !backupDue(); }
-const summarize = d => `${d.employees.length} موظف · ${(d.advances||[]).length} سلفة · ${(d.leaves||[]).length} إجازة · ${Object.keys(d.attendance||{}).length} شهر دوام`;
+const summarize = d => `${L('{0} موظف · {1} سلفة · {2} إجازة · {3} شهر دوام', d.employees.length, (d.advances||[]).length, (d.leaves||[]).length, Object.keys(d.attendance||{}).length)}`;
 
 /* ========== الإجازات ========== */
 function leaveDays(empId, start, end, type){
@@ -564,32 +1006,33 @@ function empsForMonth(y,m){
 
 /* ========== رأس الصفحة ========== */
 const HEAD = {
-  home: () => ({ title:"الرواتب والدوام", sub:`${WEEKDAYS[now().getDay()]} ${now().getDate()} ${MONTHS[now().getMonth()]}` }),
-  attendance: () => ({ title:"الدوام", act: db.employees.length ? `<button class="icon-btn" data-act="att-menu" aria-label="خيارات">${ic("dots")}</button>` : "" }),
-  payroll: () => ({ title:"الرواتب", act: db.employees.length ? `<button class="icon-btn" data-act="export-month" aria-label="تصدير Excel">${ic("download")}</button><button class="icon-btn" data-act="print" aria-label="طباعة">${ic("printer")}</button>` : "" }),
-  employees: () => ({ title:"الموظفين", sub: db.employees.length ? `${db.employees.filter(e=>isActive(e)).length} نشط من ${db.employees.length}` : "", act:`<button class="icon-btn primary" data-act="add-emp" aria-label="موظف جديد">${ic("plus")}</button>` }),
-  profile: () => ({ title: empName(state.profile), back:"employees", act:`<button class="icon-btn" data-act="profile-menu" aria-label="خيارات">${ic("dots")}</button>` }),
-  more: () => ({ title:"المزيد" }),
-  advances: () => ({ title:"السلف", back:"more" }),
-  overtime: () => ({ title:"الساعات الإضافية", back:"more" }),
-  leaves: () => ({ title:"الإجازات", back:"more" }),
-  summary: () => ({ title:"الملخص السنوي", back:"more", act:`<button class="icon-btn" data-act="export-year" aria-label="تصدير Excel">${ic("download")}</button>` }),
-  settings: () => ({ title:"الإعدادات وحماية البيانات", back:"more" }),
+  home: () => ({ title:L('الرواتب والدوام'), sub:`${WEEKDAYS[now().getDay()]} ${now().getDate()} ${MONTHS[now().getMonth()]}` }),
+  attendance: () => ({ title:L('الدوام'), act: db.employees.length ? `<button class="icon-btn" data-act="att-menu" aria-label="${L('خيارات')}">${ic("dots")}</button>` : "" }),
+  payroll: () => ({ title:L('الرواتب'), act: db.employees.length ? `<button class="icon-btn" data-act="export-month" aria-label="${L('تصدير')} Excel">${ic("download")}</button><button class="icon-btn" data-act="print" aria-label="${L('طباعة')}">${ic("printer")}</button>` : "" }),
+  employees: () => ({ title:L('الموظفين'), sub: db.employees.length ? `${L('{0} نشط من', db.employees.filter(e=>isActive(e)).length)} ${db.employees.length}` : "", act:`<button class="icon-btn primary" data-act="add-emp" aria-label="${L('موظف جديد')}">${ic("plus")}</button>` }),
+  profile: () => ({ title: empName(state.profile), back:"employees", act:`<button class="icon-btn" data-act="profile-menu" aria-label="${L('خيارات')}">${ic("dots")}</button>` }),
+  more: () => ({ title:L('المزيد') }),
+  advances: () => ({ title:L('السلف'), back:"more" }),
+  overtime: () => ({ title:L('الساعات الإضافية'), back:"more" }),
+  leaves: () => ({ title:L('الإجازات'), back:"more" }),
+  summary: () => ({ title:L('الملخص السنوي'), back:"more", act:`<button class="icon-btn" data-act="export-year" aria-label="${L('تصدير')} Excel">${ic("download")}</button>` }),
+  settings: () => ({ title:L('الإعدادات وحماية البيانات'), back:"more" }),
 };
 
 /* ========== الشاشات ========== */
 const views = {};
 const emptyState = (icon, text, btn="") => `<div class="group"><div class="empty">${ic(icon)}<div>${text}</div>${btn?`<div style="margin-top:14px">${btn}</div>`:""}</div></div>`;
-const needEmp = () => emptyState("users", "لا يوجد موظفون بعد.", `<button class="btn primary" data-act="add-emp">${ic("userplus","sm")} إضافة موظف</button>`);
+const needEmp = () => emptyState("users", L('لا يوجد موظفون بعد.'), `<button class="btn primary" data-act="add-emp">${L('{0} إضافة موظف', ic("userplus","sm"))}</button>`);
 
 function welcome(){
   const sa = isStandalone();
-  return `<div class="hero"><div class="value" style="font-size:var(--fs-lg)">أهلاً بك 👋</div><div class="sub">نظام بسيط للرواتب والدوام والسلف والإجازات.</div></div>
-  <div class="banner info">${ic("shield")}<div><b>بياناتك تبقى على هذا الجهاز فقط</b>
-    <div class="note" style="margin:0">لا تُرفع إلى أي خادم. احفظ نسخة احتياطية بانتظام من «المزيد ← الإعدادات».${sa ? " إذا أدخلت بيانات سابقاً في Safari فهي منفصلة عن هذا التطبيق — انسخها من هناك والصقها هنا." : " على iPhone: إذا أضفت التطبيق للشاشة الرئيسية فستكون له ذاكرة منفصلة عن Safari."}</div></div></div>
-  <div class="group"><button class="row row-btn" data-act="add-emp">${ic("userplus")}<div class="info"><b>إضافة أول موظف</b><small>ابدأ من الصفر</small></div>${ic("left","sm")}</button>
-    <button class="row row-btn" data-act="paste-data">${ic("paste")}<div class="info"><b>لصق بيانات منسوخة</b><small>من Safari أو من جهاز آخر</small></div>${ic("left","sm")}</button>
-    <label class="row row-btn" style="font-size:inherit;color:inherit">${ic("upload")}<div class="info"><b>استعادة من ملف نسخة احتياطية</b><small>ملف ‎.json محفوظ سابقاً</small></div>${ic("left","sm")}<input type="file" data-act-file="restore" hidden></label></div>`;
+  return `<div class="hero"><div class="value" style="font-size:var(--fs-lg)">${L('أهلاً بك')} 👋</div><div class="sub">${L('نظام بسيط للرواتب والدوام والسلف والإجازات.')}</div></div>
+  <div class="banner info">${ic("shield")}<div><b>${L('بياناتك تبقى على هذا الجهاز فقط')}</b>
+    <div class="note" style="margin:0">${L('لا تُرفع إلى أي خادم. احفظ نسخة احتياطية بانتظام من «المزيد ← الإعدادات».')}${sa ? L(' إذا أدخلت بيانات سابقاً في Safari فهي منفصلة عن هذا التطبيق — انسخها من هناك والصقها هنا.') : L(' على iPhone: إذا أضفت التطبيق للشاشة الرئيسية فستكون له ذاكرة منفصلة عن Safari.')}</div></div></div>
+  <div class="group"><button class="row row-btn" data-act="add-emp">${ic("userplus")}<div class="info"><b>${L('إضافة أول موظف')}</b><small>${L('ابدأ من الصفر')}</small></div>${ic("left","sm")}</button>
+    <button class="row row-btn" data-act="paste-data">${ic("paste")}<div class="info"><b>${L('لصق بيانات منسوخة')}</b><small>${L('من Safari أو من جهاز آخر')}</small></div>${ic("left","sm")}</button>
+    <button class="row row-btn" data-act="toggle-lang">${ic("globe")}<div class="info"><b>${LANG === "en" ? L('العربية') : "English"}</b><small>${L('اللغة')} · Language</small></div>${ic("left","sm")}</button>
+    <label class="row row-btn" style="font-size:inherit;color:inherit">${ic("upload")}<div class="info"><b>${L('استعادة من ملف نسخة احتياطية')}</b><small>${L('ملف ‎.json محفوظ سابقاً')}</small></div>${ic("left","sm")}<input type="file" data-act-file="restore" hidden></label></div>`;
 }
 
 views.home = () => {
@@ -603,28 +1046,28 @@ views.home = () => {
   const people = active.map(e => {
     const sh = attSheet(e.id,y,m), r = sh.days?.[day] || {};
     let st, btn = "";
-    if(onLeaveOn(e.id, today())) st = `<span class="tag warn">في إجازة</span>`;
-    else if(r.holiday) st = `<span class="tag warn">عطلة</span>`;
-    else if(r.in && r.out) { present++; st = `انصرف ${nb(esc(r.out))} · ${hm(calcDay(sh, r).actual)} ساعة`; btn = `<button class="btn sm" data-day-edit="${esc(e.id)}|${day}">${ic("pencil","sm")} تعديل</button>`; }
-    else if(r.in) { present++; st = `حاضر منذ ${nb(esc(r.in))}`; btn = `<button class="btn sm primary" data-punch="out|${esc(e.id)}">${ic("out","sm")} انصراف</button>`; }
-    else { st = "لم يسجّل حضوراً"; btn = `<button class="btn sm good" data-punch="in|${esc(e.id)}">${ic("in","sm")} حضور</button>`; }
+    if(onLeaveOn(e.id, today())) st = `<span class="tag warn">${L('في إجازة')}</span>`;
+    else if(r.holiday) st = `<span class="tag warn">${L('عطلة')}</span>`;
+    else if(r.in && r.out) { present++; st = `${L('انصرف {0} · {1} ساعة', nb(esc(r.out)), hm(calcDay(sh, r).actual))}`; btn = `<button class="btn sm" data-day-edit="${esc(e.id)}|${day}">${L('{0} تعديل', ic("pencil","sm"))}</button>`; }
+    else if(r.in) { present++; st = `${L('حاضر منذ')} ${nb(esc(r.in))}`; btn = `<button class="btn sm primary" data-punch="out|${esc(e.id)}">${L('{0} انصراف', ic("out","sm"))}</button>`; }
+    else { st = L('لم يسجّل حضوراً'); btn = `<button class="btn sm good" data-punch="in|${esc(e.id)}">${L('{0} حضور', ic("in","sm"))}</button>`; }
     return `<div class="row" data-row="${esc(e.id)}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${st}</small></div>${btn}</div>`;
   }).join("");
   const ds = daysSinceBackup();
   let banner = "";
-  if(!isStandalone() && /iPhone|iPad/.test(navigator.userAgent)) banner = `<div class="banner">${ic("phone")}<div><b>أنت تستخدم Safari</b><div class="note" style="margin:0">التطبيق المضاف للشاشة الرئيسية له ذاكرة منفصلة. انسخ البيانات والصقها داخله.</div><div class="btns"><button class="btn sm primary" data-act="copy-data">${ic("copy","sm")} نسخ كل البيانات</button></div></div></div>`;
-  else if(backupDue()) banner = `<div class="banner">${ic("alert")}<div><b>${db.changes} تغيير لم يُحفظ في نسخة احتياطية</b><div class="note" style="margin:0">${ds==null ? "لم تحفظ أي نسخة بعد." : `آخر نسخة قبل ${ds} يوم.`} احفظ نسخة حتى لا تضيع البيانات إذا حُذف التطبيق أو تغيّر الجوال.</div><div class="btns"><button class="btn sm primary" data-act="backup">${ic("download","sm")} حفظ ملف</button><button class="btn sm" data-act="copy-data">${ic("copy","sm")} نسخ</button></div></div></div>`;
+  if(!isStandalone() && /iPhone|iPad/.test(navigator.userAgent)) banner = `<div class="banner">${ic("phone")}<div><b>${L('أنت تستخدم')} Safari</b><div class="note" style="margin:0">${L('التطبيق المضاف للشاشة الرئيسية له ذاكرة منفصلة. انسخ البيانات والصقها داخله.')}</div><div class="btns"><button class="btn sm primary" data-act="copy-data">${L('{0} نسخ كل البيانات', ic("copy","sm"))}</button></div></div></div>`;
+  else if(backupDue()) banner = `<div class="banner">${ic("alert")}<div><b>${L('{0} تغيير لم يُحفظ في نسخة احتياطية', db.changes)}</b><div class="note" style="margin:0">${L('{0} احفظ نسخة حتى لا تضيع البيانات إذا حُذف التطبيق أو تغيّر الجوال.', ds==null ? L('لم تحفظ أي نسخة بعد.') : `${L('آخر نسخة قبل {0} يوم.', ds)}`)}</div><div class="btns"><button class="btn sm primary" data-act="backup">${L('{0} حفظ ملف', ic("download","sm"))}</button><button class="btn sm" data-act="copy-data">${L('{0} نسخ', ic("copy","sm"))}</button></div></div></div>`;
   return `${banner}
-  <div class="hero"><div class="label">صافي رواتب ${MONTHS[m-1]}</div><div class="value">${money(net)}</div>
-    <div class="strip">${kv("حاضرون اليوم", nb(`${present} / ${active.length}`))}${kv("رواتب لم تُسلَّم", undelivered, undelivered?"neg":"")}${kv("سلف الشهر", money(adv))}${kv("موظفون نشطون", active.length)}</div></div>
-  <div class="section-t"><h2>حضور اليوم</h2><small>${WEEKDAYS[d.getDay()]} ${day} ${MONTHS[m-1]}</small></div>
-  <div class="group">${active.length ? people : `<div class="empty">لا يوجد موظفون نشطون.</div>`}</div>
-  <div class="section-t"><h2>إضافة سريعة</h2></div>
+  <div class="hero"><div class="label">${L('صافي رواتب')} ${MONTHS[m-1]}</div><div class="value">${money(net)}</div>
+    <div class="strip">${kv(L('حاضرون اليوم'), nb(`${present} / ${active.length}`))}${kv(L('رواتب لم تُسلَّم'), undelivered, undelivered?"neg":"")}${kv(L('سلف الشهر'), money(adv))}${kv(L('موظفون نشطون'), active.length)}</div></div>
+  <div class="section-t"><h2>${L('حضور اليوم')}</h2><small>${WEEKDAYS[d.getDay()]} ${day} ${MONTHS[m-1]}</small></div>
+  <div class="group">${active.length ? people : `<div class="empty">${L('لا يوجد موظفون نشطون.')}</div>`}</div>
+  <div class="section-t"><h2>${L('إضافة سريعة')}</h2></div>
   <div class="tile-row">
-    <button class="tile" data-act="add-emp">${ic("userplus")}موظف</button>
-    <button class="tile" data-act="add-advances">${ic("cash")}سلفة</button>
-    <button class="tile" data-act="add-leaves">${ic("leave")}إجازة</button>
-    <button class="tile" data-act="add-overtime">${ic("timeplus")}ساعات</button>
+    <button class="tile" data-act="add-emp">${L('{0}موظف', ic("userplus"))}</button>
+    <button class="tile" data-act="add-advances">${L('{0}سلفة', ic("cash"))}</button>
+    <button class="tile" data-act="add-leaves">${L('{0}إجازة', ic("leave"))}</button>
+    <button class="tile" data-act="add-overtime">${L('{0}ساعات', ic("timeplus"))}</button>
   </div>`;
 };
 
@@ -643,23 +1086,23 @@ views.attendance = () => {
     if(c){ st = c.over ? "st-over" : c.short ? "st-short" : "st-ok";
       mid = `${nb(esc(r.in))} – ${nb(esc(r.out))} <span class="muted">· ${hm(c.actual)}</span>`;
       end = c.over ? `<span class="pos">+${hm(c.over)}</span>` : c.short ? `<span class="neg">−${hm(c.short)}</span>` : `<span class="muted">${ic("check","sm")}</span>`; }
-    else if(r.in || r.out){ st = "st-part"; mid = `${nb(esc(r.in||"--:--"))} – ${nb(esc(r.out||"--:--"))}`; end = `<span class="muted">ناقص</span>`; }
-    else if(lv){ st = "st-hol"; mid = `<span class="muted">إجازة ${esc(lv.type)}</span>`; }
-    else if(r.holiday){ st = "st-hol"; mid = `<span class="muted">عطلة</span>`; }
+    else if(r.in || r.out){ st = "st-part"; mid = `${nb(esc(r.in||"--:--"))} – ${nb(esc(r.out||"--:--"))}`; end = `<span class="muted">${L('ناقص')}</span>`; }
+    else if(lv){ st = "st-hol"; mid = `<span class="muted">${L('إجازة')} ${esc(lbl(lv.type))}</span>`; }
+    else if(r.holiday){ st = "st-hol"; mid = `<span class="muted">${L('عطلة')}</span>`; }
     else mid = `<span class="muted">—</span>`;
-    rows += `<button class="day row-btn ${st} ${!c && !r.in && !r.out ? "empty-day" : ""} ${wd==db.settings.weekend?"weekend":""} ${isCurMonth()&&d===now().getDate()?"today":""}" data-day-edit="${esc(emp.id)}|${d}" aria-label="يوم ${d}">
+    rows += `<button class="day row-btn ${st} ${!c && !r.in && !r.out ? "empty-day" : ""} ${wd==db.settings.weekend?"weekend":""} ${isCurMonth()&&d===now().getDate()?"today":""}" data-day-edit="${esc(emp.id)}|${d}" aria-label="${L('يوم')} ${d}">
       <span class="d"><b>${d}</b><small>${WEEKDAYS[wd]}</small></span><span class="t">${mid}</span><span class="r">${end}</span></button>`;
   }
   return `
   <div class="ctx"><button class="picker grow" data-act="pick-emp">${avatar(emp.name)}<b>${esc(emp.name)}</b>${ic("down","sm")}</button>${monthPicker()}</div>
-  <div class="hero"><div class="label">صافي الساعات (زيادة − نقص)</div><div class="value ${sign(netMin)}">${hm(netMin)}</div>
-    <div class="sub">القيمة ${money(res.pay)}</div>
-    <div class="strip">${kv("أيام مسجّلة", res.worked)}${kv("ساعات فعلية", hm(res.actual))}${kv("زيادة", hm(res.over), res.over?"pos":"")}${kv("نقص", hm(res.short), res.short?"neg":"")}${kv("سعر الساعة", money(sheetRate(sheet, emp)))}</div></div>
+  <div class="hero"><div class="label">${L('صافي الساعات (زيادة − نقص)')}</div><div class="value ${sign(netMin)}">${hm(netMin)}</div>
+    <div class="sub">${L('القيمة')} ${money(res.pay)}</div>
+    <div class="strip">${kv(L('أيام مسجّلة'), res.worked)}${kv(L('ساعات فعلية'), hm(res.actual))}${kv(L('زيادة'), hm(res.over), res.over?"pos":"")}${kv(L('نقص'), hm(res.short), res.short?"neg":"")}${kv(L('سعر الساعة'), money(sheetRate(sheet, emp)))}</div></div>
   ${auto
-    ? `<div class="status">${ic("sync","sm")}<span>يُحتسب تلقائياً في رواتب ${MONTHS[m-1]}${legacy?" — وتم تجاهل الترحيل اليدوي السابق لهذا الشهر حتى لا يُحتسب مرتين":""}</span></div>`
-    : `<div class="status manual">${ic("alert","sm")}<span>وضع يدوي: لا يدخل في الرواتب إلا بالترحيل</span></div>`}
-  <div class="actions-row"><button class="btn" data-act="quick-fill">${ic("zap","sm")} تعبئة سريعة</button>
-    ${auto ? "" : `<button class="btn primary" data-act="post-ot">${ic("upload","sm")} ترحيل للرواتب</button>`}</div>
+    ? `<div class="status">${ic("sync","sm")}<span>${L('يُحتسب تلقائياً في رواتب')} ${MONTHS[m-1]}${legacy?L(' — وتم تجاهل الترحيل اليدوي السابق لهذا الشهر حتى لا يُحتسب مرتين'):""}</span></div>`
+    : `<div class="status manual">${ic("alert","sm")}<span>${L('وضع يدوي: لا يدخل في الرواتب إلا بالترحيل')}</span></div>`}
+  <div class="actions-row"><button class="btn" data-act="quick-fill">${L('{0} تعبئة سريعة', ic("zap","sm"))}</button>
+    ${auto ? "" : `<button class="btn primary" data-act="post-ot">${L('{0} ترحيل للرواتب', ic("upload","sm"))}</button>`}</div>
   <div class="group">${rows}</div>`;
 };
 
@@ -667,22 +1110,22 @@ function payCard(e, p){
   const MD = num(db.settings.monthDays)||30;
   const line = (t,v,cls="neg") => Math.abs(v) > 0.004 ? `<dt>${t}</dt><dd class="${cls}">${money(v)}</dd>` : "";
   return `<div class="pcard ${p.delivered?"done":""}" data-card="${esc(e.id)}">
-    <div class="head">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.title?" · ":""}${p.days<MD?`${p.days} يوم استحقاق`:"شهر كامل"}</small></div>
-      ${p.delivered?`<span class="tag good">سُلِّم</span>`:""}</div>
+    <div class="head">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.title?" · ":""}${p.days<MD?`${L('{0} يوم استحقاق', p.days)}`:L('شهر كامل')}</small></div>
+      ${p.delivered?`<span class="tag good">${L('سُلِّم')}</span>`:""}</div>
     <dl>
-      <dt>الراتب الأساسي</dt><dd>${money(p.base)}</dd>
-      ${line(`غياب ${nb(fix(p.absDays))} يوم`,p.absDed)}${line(`بدون راتب ${p.unpaidDays} يوم`,p.unpaidDed)}${line(`تأخير ${nb(fix(p.lateHours))} ساعة`,p.lateDed)}
-      ${line("السلف",p.adv)}${line("خصومات أخرى",p.otherDed)}${line("الضمان الاجتماعي",p.ss)}
-      ${p.live?`<dt>الدوام ${hm(p.live.mins)} ساعة</dt><dd class="${sign(p.attPay)}">${money(p.attPay)}</dd>`:""}
-      ${line(`إضافي ${nb(fix(p.manualOt))} ساعة`,p.manualOtPay,sign(p.manualOtPay))}
-      ${line("مكافآت وعلاوات",p.bonus,"pos")}
+      <dt>${L('الراتب الأساسي')}</dt><dd>${money(p.base)}</dd>
+      ${line(`${L('غياب {0} يوم', nb(fix(p.absDays)))}`,p.absDed)}${line(`${L('بدون راتب {0} يوم', p.unpaidDays)}`,p.unpaidDed)}${line(`${L('تأخير {0} ساعة', nb(fix(p.lateHours)))}`,p.lateDed)}
+      ${line(L('السلف'),p.adv)}${line(L('خصومات أخرى'),p.otherDed)}${line(L('الضمان الاجتماعي'),p.ss)}
+      ${p.live?`<dt>${L('الدوام {0} ساعة', hm(p.live.mins))}</dt><dd class="${sign(p.attPay)}">${money(p.attPay)}</dd>`:""}
+      ${line(`${L('إضافي {0} ساعة', nb(fix(p.manualOt)))}`,p.manualOtPay,sign(p.manualOtPay))}
+      ${line(L('مكافآت وعلاوات'),p.bonus,"pos")}
     </dl>
-    <div class="net"><span>الصافي</span><span class="${p.net<0?"neg":""}">${money(p.net)}</span></div>
+    <div class="net"><span>${L('الصافي')}</span><span class="${p.net<0?"neg":""}">${money(p.net)}</span></div>
     <div class="foot">
-      <button class="btn sm" data-pay-edit="${esc(e.id)}">${ic("pencil","sm")} تعديل</button>
-      <button class="btn sm" data-slip="${esc(e.id)}">${ic("receipt","sm")} القسيمة</button>
+      <button class="btn sm" data-pay-edit="${esc(e.id)}">${L('{0} تعديل', ic("pencil","sm"))}</button>
+      <button class="btn sm" data-slip="${esc(e.id)}">${L('{0} القسيمة', ic("receipt","sm"))}</button>
       <span class="grow"></span>
-      <label class="check" style="font-size:13px"><input type="checkbox" data-deliver="${esc(e.id)}" ${p.delivered?"checked":""}> ${p.delivered?esc(p.deliveredDate):"تم التسليم"}</label>
+      <label class="check" style="font-size:13px"><input type="checkbox" data-deliver="${esc(e.id)}" ${p.delivered?"checked":""}> ${p.delivered?esc(p.deliveredDate):L('تم التسليم')}</label>
     </div></div>`;
 }
 views.payroll = () => {
@@ -690,9 +1133,9 @@ views.payroll = () => {
   const {y,m} = state, rows = empsForMonth(y,m).map(e => ({e, p: calcPay(e,y,m)}));
   const tot = k => rows.reduce((s,r)=>s+r.p[k],0), extra = tot("otPay")+tot("bonus");
   return `<div class="ctx">${monthPicker()}</div>
-  ${!rows.length ? emptyState("wallet", `لا يوجد موظفون على رأس عملهم في ${MONTHS[m-1]} ${y}.`) : `
-  <div class="hero"><div class="label">صافي الرواتب · ${MONTHS[m-1]}</div><div class="value">${money(tot("net"))}</div>
-    <div class="strip">${kv("الأساسي", money(tot("base")))}${kv("الخصومات", money(tot("deductions")), tot("deductions")?"neg":"")}${kv("إضافي ومكافآت", money(extra), sign(extra))}${kv("تم التسليم", nb(`${rows.filter(r=>r.p.delivered).length} / ${rows.length}`))}</div></div>
+  ${!rows.length ? emptyState("wallet", `${L('لا يوجد موظفون على رأس عملهم في')} ${MONTHS[m-1]} ${y}.`) : `
+  <div class="hero"><div class="label">${L('صافي الرواتب')} · ${MONTHS[m-1]}</div><div class="value">${money(tot("net"))}</div>
+    <div class="strip">${kv(L('الأساسي'), money(tot("base")))}${kv(L('الخصومات'), money(tot("deductions")), tot("deductions")?"neg":"")}${kv(L('إضافي ومكافآت'), money(extra), sign(extra))}${kv(L('تم التسليم'), nb(`${rows.filter(r=>r.p.delivered).length} / ${rows.length}`))}</div></div>
   <div class="cards">${rows.map(({e,p}) => payCard(e,p)).join("")}</div>`}`;
 };
 
@@ -701,11 +1144,11 @@ const empRows = () => {
   const list = db.employees.filter(e => !q || (e.name+" "+(e.title||"")+" "+(e.phone||"")).includes(q));
   return list.map(e => `<button class="row row-btn" data-profile="${esc(e.id)}">${avatar(e.name)}
     <div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"—")}</small></div>
-    <span class="end">${money(num(e.salary))}${e.endDate?`<br><span class="tag bad">${esc(e.endReason||"منتهية")}</span>`:""}</span></button>`).join("") || `<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
+    <span class="end">${money(num(e.salary))}${e.endDate?`<br><span class="tag bad">${esc(lbl(e.endReason)||L('منتهية'))}</span>`:""}</span></button>`).join("") || `<div class="empty">${L('لا نتائج لـ')} «${esc(q)}»</div>`;
 };
 views.employees = () => {
   if(!db.employees.length) return needEmp();
-  return `<div class="ctx"><input type="search" placeholder="بحث بالاسم أو المسمى أو الهاتف" value="${esc(state.q)}" data-search aria-label="بحث" style="margin:0"></div>
+  return `<div class="ctx"><input type="search" placeholder="${L('بحث بالاسم أو المسمى أو الهاتف')}" value="${esc(state.q)}" data-search aria-label="${L('بحث')}" style="margin:0"></div>
   <div class="group" id="empList">${empRows()}</div>`;
 };
 
@@ -717,34 +1160,35 @@ views.profile = () => {
   const adv = db.advances.filter(a=>a.empId===e.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   const years = e.hire ? (Date.now() - parseDate(e.hire)) / (365.25*DAY) : 0;
   return `<div class="identity">${avatar(e.name, true)}<div><h2>${esc(e.name)}</h2><span class="muted">${esc(e.title||"")}</span>
-      ${e.endDate?`<span class="tag bad">${esc(e.endReason||"منتهية")} ${esc(e.endDate)}</span>`:`<span class="tag good">نشط</span>`}</div></div>
+      ${e.endDate?`<span class="tag bad">${esc(lbl(e.endReason)||L('منتهية'))} ${esc(e.endDate)}</span>`:`<span class="tag good">${L('نشط')}</span>`}</div></div>
   <div class="group pad"><dl style="margin:0">
-      <dt>تاريخ التوظيف</dt><dd>${nb(esc(e.hire||""))} ${years>0?`<span class="muted">· ${nb(years.toFixed(1))} سنة</span>`:""}</dd>
-      <dt>الراتب الشهري</dt><dd>${money(num(e.salary))}</dd>
-      <dt>ساعات العمل اليومية</dt><dd>${nb(esc(e.hours))}</dd>
-      <dt>سعر ساعة الإضافي</dt><dd>${money(otRateFor(e))}</dd>
-      ${e.phone?`<dt>الهاتف</dt><dd><a href="tel:${esc(e.phone)}" style="color:var(--brand)">${nb(esc(e.phone))}</a></dd>`:""}
-      ${e.nid?`<dt>الرقم الوطني</dt><dd>${nb(esc(e.nid))}</dd>`:""}
-      ${e.notes?`<dt>ملاحظات</dt><dd>${esc(e.notes)}</dd>`:""}
+      <dt>${L('تاريخ التوظيف')}</dt><dd>${nb(esc(e.hire||""))} ${years>0?`<span class="muted">· ${L('{0} سنة', nb(years.toFixed(1)))}</span>`:""}</dd>
+      <dt>${L('الراتب الشهري')}</dt><dd>${money(num(e.salary))}</dd>
+      <dt>${L('ساعات العمل اليومية')}</dt><dd>${nb(esc(e.hours))}</dd>
+      <dt>${L('سعر ساعة الإضافي')}</dt><dd>${money(otRateFor(e))}</dd>
+      ${e.phone?`<dt>${L('الهاتف')}</dt><dd><a href="tel:${esc(e.phone)}" style="color:var(--brand)">${nb(esc(e.phone))}</a></dd>`:""}
+      ${e.nid?`<dt>${L('الرقم الوطني')}</dt><dd>${nb(esc(e.nid))}</dd>`:""}
+      ${e.notes?`<dt>${L('ملاحظات')}</dt><dd>${esc(e.notes)}</dd>`:""}
   </dl></div>
-  <div class="strip" style="margin-bottom:12px">${kv(`رصيد الإجازة ${y}`, `${nb(leaveBalance(e,y))} يوم`, leaveBalance(e,y)<0?"neg":"")}${kv(`صافي ${y}`, money(s.net))}${kv(`سلف ${y}`, money(s.adv))}${kv(`إضافي ومكافآت`, money(s.otPay+s.bonus), sign(s.otPay+s.bonus))}</div>
+  <div class="strip" style="margin-bottom:12px">${kv(`${L('رصيد الإجازة')} ${y}`, `${L('{0} يوم', nb(leaveBalance(e,y)))}`, leaveBalance(e,y)<0?"neg":"")}${kv(`${L('صافي')} ${y}`, money(s.net))}${kv(`${L('سلف')} ${y}`, money(s.adv))}${kv(`${L('إضافي ومكافآت')}`, money(s.otPay+s.bonus), sign(s.otPay+s.bonus))}</div>
   <div class="tile-row">
-    <button class="tile" data-act="att-of:${esc(e.id)}">${ic("clock")}الدوام</button>
-    <button class="tile" data-slip="${esc(e.id)}">${ic("receipt")}القسيمة</button>
-    <button class="tile" data-act="add-leaves:${esc(e.id)}">${ic("leave")}إجازة</button>
-    <button class="tile" data-act="add-advances:${esc(e.id)}">${ic("cash")}سلفة</button>
+    <button class="tile" data-act="att-of:${esc(e.id)}">${L('{0}الدوام', ic("clock"))}</button>
+    <button class="tile" data-slip="${esc(e.id)}">${L('{0}القسيمة', ic("receipt"))}</button>
+    <button class="tile" data-act="add-leaves:${esc(e.id)}">${L('{0}إجازة', ic("leave"))}</button>
+    <button class="tile" data-act="add-advances:${esc(e.id)}">${L('{0}سلفة', ic("cash"))}</button>
   </div>
-  <div class="section-t"><h2>آخر الإجازات</h2></div>
-  <div class="group">${lv.length?lv.map(l=>`<button class="row row-btn" data-edit="leaves:${esc(l.id)}"><div class="info"><b>${esc(l.type)}</b><small>${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}</small></div><span class="end">${leaveDays(e.id,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></button>`).join(""):`<div class="empty">لا يوجد</div>`}</div>
-  <div class="section-t"><h2>آخر السلف</h2></div>
-  <div class="group">${adv.length?adv.map(a=>`<button class="row row-btn" data-edit="advances:${esc(a.id)}"><div class="info"><b>${nb(esc(a.date))}</b><small>${esc(a.note||"")}</small></div><span class="end">${money(num(a.amount))}</span></button>`).join(""):`<div class="empty">لا يوجد</div>`}</div>`;
+  <div class="section-t"><h2>${L('آخر الإجازات')}</h2></div>
+  <div class="group">${lv.length?lv.map(l=>`<button class="row row-btn" data-edit="leaves:${esc(l.id)}"><div class="info"><b>${esc(lbl(l.type))}</b><small>${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}</small></div><span class="end">${L('{0} يوم', leaveDays(e.id,parseDate(l.from),parseDate(l.to||l.from)))}</span></button>`).join(""):`<div class="empty">${L('لا يوجد')}</div>`}</div>
+  <div class="section-t"><h2>${L('آخر السلف')}</h2></div>
+  <div class="group">${adv.length?adv.map(a=>`<button class="row row-btn" data-edit="advances:${esc(a.id)}"><div class="info"><b>${nb(esc(a.date))}</b><small>${esc(a.note||"")}</small></div><span class="end">${money(num(a.amount))}</span></button>`).join(""):`<div class="empty">${L('لا يوجد')}</div>`}</div>`;
 };
 
 views.more = () => {
   const item = (go, icon, t, sub="") => `<button class="row row-btn" data-go="${go}">${ic(icon)}<div class="info"><b>${t}</b>${sub?`<small>${sub}</small>`:""}</div>${ic("left","sm")}</button>`;
   const ds = daysSinceBackup();
-  return `<div class="group">${item("advances","cash","السلف")}${item("overtime","timeplus","الساعات الإضافية")}${item("leaves","leave","الإجازات","الأرصدة والإجازات بدون راتب")}${item("summary","chart","الملخص السنوي")}</div>
-  <div class="group">${item("settings","shield","الإعدادات وحماية البيانات", backupDue() ? `<span class="neg">${db.changes} تغيير بدون نسخة احتياطية</span>` : ds==null ? "لم تُحفظ نسخة بعد" : `آخر نسخة قبل ${ds} يوم`)}</div>`;
+  return `<div class="group"><button class="row row-btn" data-act="toggle-lang">${ic("globe")}<div class="info"><b>${L('اللغة')} · Language</b><small>${LANG === "en" ? "English" : L('العربية')}</small></div><span class="btn sm">${LANG === "en" ? L('العربية') : "English"}</span></button></div>
+  <div class="group">${item("advances","cash",L('السلف'))}${item("overtime","timeplus",L('الساعات الإضافية'))}${item("leaves","leave",L('الإجازات'),L('الأرصدة والإجازات بدون راتب'))}${item("summary","chart",L('الملخص السنوي'))}</div>
+  <div class="group">${item("settings","shield",L('الإعدادات وحماية البيانات'), backupDue() ? `<span class="neg">${L('{0} تغيير بدون نسخة احتياطية', db.changes)}</span>` : ds==null ? L('لم تُحفظ نسخة بعد') : `${L('آخر نسخة قبل {0} يوم', ds)}`)}</div>`;
 };
 
 function recordList(kind){
@@ -753,13 +1197,13 @@ function recordList(kind){
   const rows = db[kind].filter(r => r.date?.startsWith(prefix)).sort((a,b)=>a.date.localeCompare(b.date));
   const ignored = r => !isAdv && r.note===POST_TAG && empById(r.empId) && liveAtt(empById(r.empId), state.y, state.m);
   const total = rows.filter(r=>!ignored(r)).reduce((s,r)=>s+num(isAdv?r.amount:r.hours),0);
-  return `<div class="ctx">${monthPicker()}<span class="grow"></span><button class="btn primary" data-act="add-${kind}">${ic("plus","sm")} ${isAdv?"سلفة":"ساعات"}</button></div>
-  <div class="hero"><div class="label">${isAdv?"إجمالي السلف":"إجمالي الساعات اليدوية"} · ${MONTHS[state.m-1]}</div><div class="value">${isAdv?money(total):nb(fix(total))}</div><div class="sub">${rows.length} سجل</div></div>
+  return `<div class="ctx">${monthPicker()}<span class="grow"></span><button class="btn primary" data-act="add-${kind}">${ic("plus","sm")} ${isAdv?L('سلفة'):L('ساعات')}</button></div>
+  <div class="hero"><div class="label">${isAdv?L('إجمالي السلف'):L('إجمالي الساعات اليدوية')} · ${MONTHS[state.m-1]}</div><div class="value">${isAdv?money(total):nb(fix(total))}</div><div class="sub">${L('{0} سجل', rows.length)}</div></div>
   ${rows.length ? `<div class="group">${rows.map(r=>`<button class="row row-btn" data-edit="${kind}:${esc(r.id)}">${avatar(empName(r.empId))}
-    <div class="info"><b>${esc(empName(r.empId))}</b><small>${nb(esc(r.date))}${r.note?" · "+esc(r.note):""}</small></div>
-    <span class="end">${isAdv?money(num(r.amount)):nb(fix(num(r.hours)))+" س"}${ignored(r)?`<br><span class="tag">مستبدل بالدوام</span>`:""}</span></button>`).join("")}</div>`
-    : emptyState(isAdv?"cash":"timeplus", "لا توجد سجلات في هذا الشهر.")}
-  ${!isAdv ? `<p class="note">الساعات السالبة تُخصم بنفس سعر الإضافي. ساعات الدوام تُحتسب تلقائياً من شاشة الدوام ولا تحتاج إدخالاً هنا.</p>` : ""}`;
+    <div class="info"><b>${esc(empName(r.empId))}</b><small>${nb(esc(r.date))}${r.note?" · "+esc(r.note===POST_TAG ? lbl(r.note) : r.note):""}</small></div>
+    <span class="end">${isAdv?money(num(r.amount)):nb(fix(num(r.hours)))+L(' س')}${ignored(r)?`<br><span class="tag">${L('مستبدل بالدوام')}</span>`:""}</span></button>`).join("")}</div>`
+    : emptyState(isAdv?"cash":"timeplus", L('لا توجد سجلات في هذا الشهر.'))}
+  ${!isAdv ? `<p class="note">${L('الساعات السالبة تُخصم بنفس سعر الإضافي. ساعات الدوام تُحتسب تلقائياً من شاشة الدوام ولا تحتاج إدخالاً هنا.')}</p>` : ""}`;
 }
 views.advances = () => recordList("advances");
 views.overtime = () => recordList("overtime");
@@ -768,15 +1212,15 @@ views.leaves = () => {
   if(!db.employees.length) return needEmp();
   const y = state.y, ys = Date.UTC(y,0,1), ye = Date.UTC(y,11,31);
   const rows = db.leaves.filter(l => leaveDays(l.empId, ys, ye)).sort((a,b)=>b.from.localeCompare(a.from));
-  return `<div class="ctx">${monthPicker(true)}<span class="grow"></span><button class="btn primary" data-act="add-leaves">${ic("plus","sm")} إجازة</button></div>
-  <div class="section-t"><h2>الأرصدة</h2><small>السنوية ${esc(db.settings.annualLeave)} يوم</small></div>
-  <div class="group tbl"><table><thead><tr><th>الموظف</th><th>المستخدم</th><th>الرصيد</th><th>مرضية</th><th>بدون راتب</th></tr></thead><tbody>
+  return `<div class="ctx">${monthPicker(true)}<span class="grow"></span><button class="btn primary" data-act="add-leaves">${L('{0} إجازة', ic("plus","sm"))}</button></div>
+  <div class="section-t"><h2>${L('الأرصدة')}</h2><small>${L('السنوية {0} يوم', esc(db.settings.annualLeave))}</small></div>
+  <div class="group tbl"><table><thead><tr><th>${L('الموظف')}</th><th>${L('المستخدم')}</th><th>${L('الرصيد')}</th><th>${L('مرضية')}</th><th>${L('بدون راتب')}</th></tr></thead><tbody>
   ${db.employees.filter(e=>isActive(e, `${y}-12-31`) || isActive(e, `${y}-01-01`)).map(e=>`<tr><td>${esc(e.name)}</td><td>${leaveDays(e.id,ys,ye,"سنوية")}</td><td><b class="${leaveBalance(e,y)<0?"neg":""}">${nb(leaveBalance(e,y))}</b></td><td>${leaveDays(e.id,ys,ye,"مرضية")}</td><td>${leaveDays(e.id,ys,ye,"بدون راتب")}</td></tr>`).join("")}
-  </tbody></table></div><p class="note">الإجازة «بدون راتب» تُخصم تلقائياً من راتب الشهر.</p>
-  <div class="section-t"><h2>إجازات ${y}</h2></div>
+  </tbody></table></div><p class="note">${L('الإجازة «بدون راتب» تُخصم تلقائياً من راتب الشهر.')}</p>
+  <div class="section-t"><h2>${L('إجازات')} ${y}</h2></div>
   ${rows.length ? `<div class="group">${rows.map(l=>`<button class="row row-btn" data-edit="leaves:${esc(l.id)}">${avatar(empName(l.empId))}
-    <div class="info"><b>${esc(empName(l.empId))}</b><small>${esc(l.type)} · ${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}${l.note?" · "+esc(l.note):""}</small></div>
-    <span class="end"><span class="tag ${l.type==="بدون راتب"?"bad":""}">${leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from))} يوم</span></span></button>`).join("")}</div>` : emptyState("leave", `لا توجد إجازات في ${y}.`)}`;
+    <div class="info"><b>${esc(empName(l.empId))}</b><small>${esc(lbl(l.type))} · ${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}${l.note?" · "+esc(l.note):""}</small></div>
+    <span class="end"><span class="tag ${l.type==="بدون راتب"?"bad":""}">${L('{0} يوم', leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from)))}</span></span></button>`).join("")}</div>` : emptyState("leave", `${L('لا توجد إجازات في')} ${y}.`)}`;
 };
 
 views.summary = () => {
@@ -789,59 +1233,60 @@ views.summary = () => {
   }).filter(r => r.s.base);
   const T = k => rows.reduce((a,r)=>a+r.s[k],0);
   return `<div class="ctx">${monthPicker(true)}</div>
-  ${!rows.length ? emptyState("chart", `لا توجد رواتب في ${y}.`) : `
-  <div class="hero"><div class="label">صافي رواتب ${y}</div><div class="value">${money(T("net"))}</div>
-    <div class="strip">${kv("الأساسي", money(T("base")))}${kv("الخصومات", money(T("deductions")), T("deductions")?"neg":"")}${kv("السلف", money(T("adv")))}${kv("إضافي", money(T("otPay")), sign(T("otPay")))}${kv("مكافآت", money(T("bonus")))}</div></div>
-  <div class="group tbl"><table><thead><tr><th>الموظف</th><th>الأساسي</th><th>غياب</th><th>تأخير</th><th>السلف</th><th>إضافي (س)</th><th>أجر إضافي</th><th>مكافآت</th><th>الخصومات</th><th>الصافي</th></tr></thead><tbody>
+  ${!rows.length ? emptyState("chart", `${L('لا توجد رواتب في')} ${y}.`) : `
+  <div class="hero"><div class="label">${L('صافي رواتب')} ${y}</div><div class="value">${money(T("net"))}</div>
+    <div class="strip">${kv(L('الأساسي'), money(T("base")))}${kv(L('الخصومات'), money(T("deductions")), T("deductions")?"neg":"")}${kv(L('السلف'), money(T("adv")))}${kv(L('إضافي'), money(T("otPay")), sign(T("otPay")))}${kv(L('مكافآت'), money(T("bonus")))}</div></div>
+  <div class="group tbl"><table><thead><tr><th>${L('الموظف')}</th><th>${L('الأساسي')}</th><th>${L('غياب')}</th><th>${L('تأخير')}</th><th>${L('السلف')}</th><th>${L('إضافي (س)')}</th><th>${L('أجر إضافي')}</th><th>${L('مكافآت')}</th><th>${L('الخصومات')}</th><th>${L('الصافي')}</th></tr></thead><tbody>
   ${rows.map(({e,s})=>`<tr><td>${esc(e.name)}</td><td>${money(s.base)}</td><td>${nb(fix(s.absDays))}</td><td>${nb(fix(s.lateHours))}</td><td>${money(s.adv)}</td><td>${nb(fix(s.otHours))}</td><td class="${sign(s.otPay)}">${money(s.otPay)}</td><td>${money(s.bonus)}</td><td>${money(s.deductions)}</td><td><b>${money(s.net)}</b></td></tr>`).join("")}
-  </tbody><tfoot><tr><td>الإجمالي</td><td>${money(T("base"))}</td><td>${nb(fix(T("absDays")))}</td><td>${nb(fix(T("lateHours")))}</td><td>${money(T("adv"))}</td><td>${nb(fix(T("otHours")))}</td><td>${money(T("otPay"))}</td><td>${money(T("bonus"))}</td><td>${money(T("deductions"))}</td><td>${money(T("net"))}</td></tr></tfoot></table></div>`}`;
+  </tbody><tfoot><tr><td>${L('الإجمالي')}</td><td>${money(T("base"))}</td><td>${nb(fix(T("absDays")))}</td><td>${nb(fix(T("lateHours")))}</td><td>${money(T("adv"))}</td><td>${nb(fix(T("otHours")))}</td><td>${money(T("otPay"))}</td><td>${money(T("bonus"))}</td><td>${money(T("deductions"))}</td><td>${money(T("net"))}</td></tr></tfoot></table></div>`}`;
 };
 
 views.settings = () => {
   const S = db.settings, ds = daysSinceBackup(), snaps = readSnaps();
   const sa = isStandalone();
   return `
-  <div class="section-t"><h2>حماية البيانات</h2></div>
+  <div class="section-t"><h2>${L('حماية البيانات')}</h2></div>
   <div class="group pad">
     <dl style="margin:0 0 10px">
-      <dt>مكان الحفظ</dt><dd>${sa ? "التطبيق على الشاشة الرئيسية" : "المتصفح"}</dd>
-      <dt>آخر نسخة احتياطية</dt><dd class="${backupDue()?"neg":""}">${ds==null ? "لا يوجد" : ds===0 ? "اليوم" : `قبل ${ds} يوم`}</dd>
-      <dt>تغييرات بعد آخر نسخة</dt><dd class="${backupDue()?"neg":""}">${db.changes||0}</dd>
-      <dt>تخزين دائم</dt><dd id="persistState">…</dd>
+      <dt>${L('مكان الحفظ')}</dt><dd>${sa ? L('التطبيق على الشاشة الرئيسية') : L('المتصفح')}</dd>
+      <dt>${L('آخر نسخة احتياطية')}</dt><dd class="${backupDue()?"neg":""}">${ds==null ? L('لا يوجد') : ds===0 ? L('اليوم') : `${L('قبل {0} يوم', ds)}`}</dd>
+      <dt>${L('تغييرات بعد آخر نسخة')}</dt><dd class="${backupDue()?"neg":""}">${db.changes||0}</dd>
+      <dt>${L('تخزين دائم')}</dt><dd id="persistState">…</dd>
     </dl>
-    <div class="fields"><button class="btn primary" data-act="backup">${ic("download","sm")} حفظ ملف نسخة</button><button class="btn" data-act="copy-data">${ic("copy","sm")} نسخ كل البيانات</button></div>
-    <p class="note">الملف يُحفظ في «الملفات» أو تُرسله لنفسك. «نسخ» ثم «لصق» هو أسهل طريقة لنقل البيانات بين Safari والتطبيق أو بين جهازين.</p>
+    <div class="fields"><button class="btn primary" data-act="backup">${L('{0} حفظ ملف نسخة', ic("download","sm"))}</button><button class="btn" data-act="copy-data">${L('{0} نسخ كل البيانات', ic("copy","sm"))}</button></div>
+    <p class="note">${L('الملف يُحفظ في «الملفات» أو تُرسله لنفسك. «نسخ» ثم «لصق» هو أسهل طريقة لنقل البيانات بين Safari والتطبيق أو بين جهازين.')}</p>
   </div>
   <div class="group">
-    <button class="row row-btn" data-act="paste-data">${ic("paste")}<div class="info"><b>لصق البيانات</b><small>استبدال البيانات الحالية ببيانات منسوخة</small></div>${ic("left","sm")}</button>
-    <label class="row row-btn" style="font-size:inherit;color:inherit">${ic("upload")}<div class="info"><b>استعادة من ملف</b><small>ملف نسخة احتياطية ‎.json</small></div>${ic("left","sm")}<input type="file" data-act-file="restore" hidden></label>
-    <button class="row row-btn" data-act="export-all">${ic("file")}<div class="info"><b>تصدير كل البيانات إلى Excel</b><small>للأرشفة أو المحاسب</small></div>${ic("left","sm")}</button>
+    <button class="row row-btn" data-act="paste-data">${ic("paste")}<div class="info"><b>${L('لصق البيانات')}</b><small>${L('استبدال البيانات الحالية ببيانات منسوخة')}</small></div>${ic("left","sm")}</button>
+    <label class="row row-btn" style="font-size:inherit;color:inherit">${ic("upload")}<div class="info"><b>${L('استعادة من ملف')}</b><small>${L('ملف نسخة احتياطية')} ‎.json</small></div>${ic("left","sm")}<input type="file" data-act-file="restore" hidden></label>
+    <button class="row row-btn" data-act="export-all">${ic("file")}<div class="info"><b>${L('تصدير كل البيانات إلى')} Excel</b><small>${L('للأرشفة أو المحاسب')}</small></div>${ic("left","sm")}</button>
   </div>
-  <div class="section-t"><h2>لقطات تلقائية على هذا الجهاز</h2><small>آخر ${snaps.length}</small></div>
-  <div class="group">${snaps.length ? snaps.map((s,i)=>`<button class="row row-btn" data-snap="${i}">${ic("history")}<div class="info"><b>${nb(new Date(s.at).toLocaleString("en-GB",{dateStyle:"short",timeStyle:"short"}))}</b><small>${esc(s.reason)} · ${esc(s.n)} موظف</small></div><span class="btn sm">استرجاع</span></button>`).join("") : `<div class="empty">تُؤخذ لقطة يومياً، وقبل أي استعادة أو حذف.</div>`}</div>
-  <p class="note">اللقطات تحميك من الأخطاء (حذف أو استعادة خاطئة)، لكنها على نفس الجهاز — لا تغني عن ملف النسخة الاحتياطية.</p>
+  <div class="section-t"><h2>${L('لقطات تلقائية على هذا الجهاز')}</h2><small>${L('آخر')} ${snaps.length}</small></div>
+  <div class="group">${snaps.length ? snaps.map((s,i)=>`<button class="row row-btn" data-snap="${i}">${ic("history")}<div class="info"><b>${nb(new Date(s.at).toLocaleString("en-GB",{dateStyle:"short",timeStyle:"short"}))}</b><small>${esc(lbl(s.reason))} · ${L('{0} موظف', esc(s.n))}</small></div><span class="btn sm">${L('استرجاع')}</span></button>`).join("") : `<div class="empty">${L('تُؤخذ لقطة يومياً، وقبل أي استعادة أو حذف.')}</div>`}</div>
+  <p class="note">${L('اللقطات تحميك من الأخطاء (حذف أو استعادة خاطئة)، لكنها على نفس الجهاز — لا تغني عن ملف النسخة الاحتياطية.')}</p>
 
-  <div class="section-t"><h2>عام</h2></div>
+  <div class="section-t"><h2>${L('عام')}</h2></div>
   <div class="group pad"><div class="fields">
-    <label class="full">اسم المنشأة (يظهر في القسيمة)<input value="${esc(S.company)}" data-set="company"></label>
-    <label>العملة<input value="${esc(S.currency)}" data-set="currency"></label>
-    <label>أيام الشهر في الحساب<input inputmode="numeric" value="${esc(S.monthDays)}" data-set="monthDays" data-num></label>
-    <label>معامل أجر الإضافي<input inputmode="decimal" value="${esc(S.otMultiplier)}" data-set="otMultiplier" data-num></label>
-    <label>الضمان الاجتماعي % (0 = بدون)<input inputmode="decimal" value="${esc(S.ssPct)}" data-set="ssPct" data-num></label>
-    <label>الإجازة السنوية (يوم)<input inputmode="numeric" value="${esc(S.annualLeave)}" data-set="annualLeave" data-num></label>
-    <label>يوم العطلة الأسبوعية<select data-set="weekend" data-num>${WEEKDAYS.map((d,i)=>`<option value="${i}" ${i==S.weekend?"selected":""}>${d}</option>`).join("")}</select></label>
+    <label class="full">${L('اللغة')} · Language<select data-lang><option value="ar" ${LANG === "ar" ? "selected" : ""}>${L('العربية')}</option><option value="en" ${LANG === "en" ? "selected" : ""}>English</option></select></label>
+    <label class="full">${L('اسم المنشأة (يظهر في القسيمة)')}<input value="${esc(S.company)}" data-set="company"></label>
+    <label>${L('العملة')}<input value="${esc(S.currency)}" data-set="currency"></label>
+    <label>${L('أيام الشهر في الحساب')}<input inputmode="numeric" value="${esc(S.monthDays)}" data-set="monthDays" data-num></label>
+    <label>${L('معامل أجر الإضافي')}<input inputmode="decimal" value="${esc(S.otMultiplier)}" data-set="otMultiplier" data-num></label>
+    <label>${L('الضمان الاجتماعي')} % (0 = ${L('بدون)')}<input inputmode="decimal" value="${esc(S.ssPct)}" data-set="ssPct" data-num></label>
+    <label>${L('الإجازة السنوية (يوم)')}<input inputmode="numeric" value="${esc(S.annualLeave)}" data-set="annualLeave" data-num></label>
+    <label>${L('يوم العطلة الأسبوعية')}<select data-set="weekend" data-num>${WEEKDAYS.map((d,i)=>`<option value="${i}" ${i==S.weekend?"selected":""}>${d}</option>`).join("")}</select></label>
   </div></div>
-  <div class="section-t"><h2>الدوام</h2></div>
+  <div class="section-t"><h2>${L('الدوام')}</h2></div>
   <div class="group pad"><div class="fields">
-    ${timeField("الساعات المطلوبة يومياً","attReq",S.attReq,{set:"attReq",now:false})}
-    ${timeField("وقت الحضور المعتاد","defIn",S.defIn,{set:"defIn",now:false})}
-    ${timeField("وقت الانصراف المعتاد","defOut",S.defOut,{set:"defOut",now:false})}
+    ${timeField(L('الساعات المطلوبة يومياً'),"attReq",S.attReq,{set:"attReq",now:false})}
+    ${timeField(L('وقت الحضور المعتاد'),"defIn",S.defIn,{set:"defIn",now:false})}
+    ${timeField(L('وقت الانصراف المعتاد'),"defOut",S.defOut,{set:"defOut",now:false})}
   </div>
-  <label class="check" style="margin-top:6px"><input type="checkbox" data-set="autoAtt" ${S.autoAtt!==false?"checked":""}> احتساب الدوام في الرواتب تلقائياً</label>
-  <p class="note">عند التفعيل يُحسب فرق ساعات الدوام (زيادة − نقص) في راتب الشهر مباشرة، ويتحدّث كلما عدّلت الدوام. يمكن إيقافه لشهر معيّن من خيارات شاشة الدوام.</p></div>
-  <div class="section-t"><h2>منطقة الخطر</h2></div>
-  <div class="group"><button class="row row-btn" data-act="wipe" style="color:var(--bad)">${ic("trash")}<div class="info"><b>حذف كل البيانات</b><small style="color:inherit;opacity:.8">تُؤخذ لقطة قبل الحذف</small></div></button></div>
-  <p class="note">الراتب اليومي = الراتب ÷ أيام الشهر · خصم التأخير = الراتب اليومي ÷ ساعات العمل × ساعات التأخير · أجر الإضافي = نفس سعر الساعة × المعامل · الصافي = الأساسي − الخصومات + الإضافي + المكافآت.</p>`;
+  <label class="check" style="margin-top:6px"><input type="checkbox" data-set="autoAtt" ${S.autoAtt!==false?"checked":""}> ${L('احتساب الدوام في الرواتب تلقائياً')}</label>
+  <p class="note">${L('عند التفعيل يُحسب فرق ساعات الدوام (زيادة − نقص) في راتب الشهر مباشرة، ويتحدّث كلما عدّلت الدوام. يمكن إيقافه لشهر معيّن من خيارات شاشة الدوام.')}</p></div>
+  <div class="section-t"><h2>${L('منطقة الخطر')}</h2></div>
+  <div class="group"><button class="row row-btn" data-act="wipe" style="color:var(--bad)">${ic("trash")}<div class="info"><b>${L('حذف كل البيانات')}</b><small style="color:inherit;opacity:.8">${L('تُؤخذ لقطة قبل الحذف')}</small></div></button></div>
+  <p class="note">${L('الراتب اليومي')} = ${L('الراتب ÷ أيام الشهر · خصم التأخير')} = ${L('الراتب اليومي ÷ ساعات العمل × ساعات التأخير · أجر الإضافي')} = ${L('نفس سعر الساعة × المعامل · الصافي')} = ${L('الأساسي − الخصومات + الإضافي + المكافآت.')}</p>`;
 };
 
 /* ========== حقل وقت بنظام 24 ساعة ========== */
@@ -851,9 +1296,9 @@ function timeField(label, name, val, opts={}){
   const opt = (arr, cur) => `<option value="">--</option>` + arr.map(x=>`<option ${x===cur?"selected":""}>${x}</option>`).join("");
   return `<div class="f"><span class="lbl">${label}</span><div class="tf" dir="ltr" data-tf="${name}">
     <input type="hidden" name="${name}" value="${esc(val||"")}" ${opts.set?`data-set="${opts.set}"`:""}>
-    <select class="tf-h" aria-label="${label} — الساعة">${opt(HOURS,h)}</select><span class="tf-c">:</span>
-    <select class="tf-m" aria-label="${label} — الدقيقة">${opt(MINS,m)}</select>
-    ${opts.now!==false?`<button type="button" class="btn sm" data-now>الآن</button>`:""}</div></div>`;
+    <select class="tf-h" aria-label="${label} — ${L('الساعة')}">${opt(HOURS,h)}</select><span class="tf-c">:</span>
+    <select class="tf-m" aria-label="${label} — ${L('الدقيقة')}">${opt(MINS,m)}</select>
+    ${opts.now!==false?`<button type="button" class="btn sm" data-now>${L('الآن')}</button>`:""}</div></div>`;
 }
 function tfSync(tf){
   const h = tf.querySelector(".tf-h"), m = tf.querySelector(".tf-m"), inp = tf.querySelector("input");
@@ -927,7 +1372,7 @@ function flash(el, color){ if(!el) return; el.style.setProperty("--hl", color ||
 function pop(el, frames){ if(!el || RM.matches) return; motion(el, frames || [{transform:"scale(.92)", opacity:.4},{transform:"scale(1)", opacity:1}], {duration:180, easing:EASE_POP}); }
 function slideView(dir){
   const kids = [...$("#view").children].filter(c => !c.classList.contains("ctx"));
-  const frames = RM.matches ? [{opacity:0},{opacity:1}] : [{opacity:0, transform:`translateX(${dir > 0 ? -12 : 12}px)`},{opacity:1, transform:"none"}];
+  const frames = RM.matches ? [{opacity:0},{opacity:1}] : [{opacity:0, transform:`translateX(${(dir > 0 ? -12 : 12) * (LANG === "en" ? -1 : 1)}px)`},{opacity:1, transform:"none"}];
   kids.forEach(k => motion(k, frames, {duration: RM.matches ? 120 : 180, easing: EASE_POP}));
 }
 
@@ -951,10 +1396,10 @@ if(window.visualViewport){
   visualViewport.addEventListener("resize", fit); visualViewport.addEventListener("scroll", fit);
 }
 
-function openDialog(html, onSubmit, extraButtons="", okLabel="حفظ"){
+function openDialog(html, onSubmit, extraButtons="", okLabel=L('حفظ')){
   const d = $("#dlg");
   d.innerHTML = `<form method="dialog" novalidate><div class="sheet-grab"></div><div class="sheet-body">${html}</div>
-    <div class="sheet-foot"><button class="btn primary" value="ok">${okLabel}</button><button class="btn" value="cancel">إلغاء</button>${extraButtons}</div></form>`;
+    <div class="sheet-foot"><button class="btn primary" value="ok">${okLabel}</button><button class="btn" value="cancel">${L('إلغاء')}</button>${extraButtons}</div></form>`;
   const f = d.querySelector("form");
   f.onsubmit = ev => {
     const v = ev.submitter?.value;
@@ -964,8 +1409,8 @@ function openDialog(html, onSubmit, extraButtons="", okLabel="حفظ"){
       f.querySelectorAll(".invalid").forEach(i => i.classList.remove("invalid"));
       if(bad.length){
         ev.preventDefault(); bad.forEach(i => i.classList.add("invalid"));
-        const lbl = bad[0].closest("label")?.childNodes[0]?.textContent?.trim() || "الحقول المطلوبة";
-        toast("أكمل: " + lbl); bad[0].focus(); return;
+        const lbl = bad[0].closest("label")?.childNodes[0]?.textContent?.trim() || L('الحقول المطلوبة');
+        toast(L('أكمل: ') + lbl); bad[0].focus(); return;
       }
     }
     const data = Object.fromEntries(new FormData(f));
@@ -980,12 +1425,12 @@ function openDialog(html, onSubmit, extraButtons="", okLabel="حفظ"){
   return f;
 }
 // تأكيد داخل التطبيق بدل نوافذ المتصفح
-function ask(msg, {ok="تأكيد", danger=false, title=""}={}){
+function ask(msg, {ok=L('تأكيد'), danger=false, title=""}={}){
   return new Promise(async res => {
     const d = $("#ask");
     if(d.open){ d.close(); await whenClosed(d); }
     d.innerHTML = `<div class="sheet-grab"></div><div class="ask-body">${title?`<h3>${title}</h3>`:""}<p>${msg}</p></div>
-      <div class="sheet-foot"><button class="btn ${danger?"danger":"primary"}" data-r="1">${ok}</button><button class="btn" data-r="0">إلغاء</button></div>`;
+      <div class="sheet-foot"><button class="btn ${danger?"danger":"primary"}" data-r="1">${ok}</button><button class="btn" data-r="0">${L('إلغاء')}</button></div>`;
     let done = false; const fin = v => { if(!done){ done = true; res(v); } };
     d.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { fin(b.dataset.r === "1"); d.close(); });
     // يُحسم السؤال فقط بفعل المستخدم، لا بحدث إغلاق متأخر من نافذة سابقة
@@ -997,7 +1442,7 @@ async function menu(title, items){
   const d = $("#ask");
   if(d.open){ d.close(); await whenClosed(d); }
   d.innerHTML = `<div class="sheet-grab"></div>${title?`<div class="ask-body"><h3>${title}</h3></div>`:""}<div class="menu-list">${items.map((it,i)=>`<button data-i="${i}" class="${it.danger?"danger":""}">${ic(it.icon)}${it.label}</button>`).join("")}</div>
-    <div class="sheet-foot"><button class="btn" data-close>إغلاق</button></div>`;
+    <div class="sheet-foot"><button class="btn" data-close>${L('إغلاق')}</button></div>`;
   d.onDismiss = null;
   d.querySelector("[data-close]").onclick = () => d.close();
   d.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { d.close(); whenClosed(d).then(() => items[+b.dataset.i].run()); });
@@ -1006,64 +1451,64 @@ async function menu(title, items){
 
 function editEmployee(id){
   const e = id ? empById(id) : {hours:8};
-  openDialog(`<h3>${id?"تعديل موظف":"موظف جديد"}</h3>
-    <label>اسم الموظف<input name="name" required value="${esc(e.name||"")}" autocomplete="off"></label>
-    <div class="fields"><label>المسمى الوظيفي<input name="title" value="${esc(e.title||"")}"></label>
-      <label>تاريخ التوظيف<input type="date" name="hire" required value="${esc(e.hire||"")}"></label>
-      <label>الراتب الشهري<input inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
-      <label>ساعات العمل اليومية<input inputmode="decimal" name="hours" required value="${esc(e.hours??8)}"></label>
-      <label>الهاتف<input type="tel" name="phone" value="${esc(e.phone||"")}"></label>
-      <label>الرقم الوطني<input inputmode="numeric" name="nid" value="${esc(e.nid||"")}"></label></div>
-    <details ${e.endDate?"open":""} style="margin-top:4px"><summary>إنهاء الخدمة وملاحظات</summary>
-    <div class="fields"><label>تاريخ انتهاء الخدمة<input type="date" name="endDate" value="${esc(e.endDate||"")}"></label>
-      <label>سبب الإنهاء<select name="endReason"><option value=""></option>${END_REASONS.map(r=>`<option ${r===e.endReason?"selected":""}>${r}</option>`).join("")}</select></label>
-      <label class="full">ملاحظات<textarea name="notes" rows="2">${esc(e.notes||"")}</textarea></label></div></details>`,
+  openDialog(`<h3>${id?L('تعديل موظف'):L('موظف جديد')}</h3>
+    <label>${L('اسم الموظف')}<input name="name" required value="${esc(e.name||"")}" autocomplete="off"></label>
+    <div class="fields"><label>${L('المسمى الوظيفي')}<input name="title" value="${esc(e.title||"")}"></label>
+      <label>${L('تاريخ التوظيف')}<input type="date" name="hire" required value="${esc(e.hire||"")}"></label>
+      <label>${L('الراتب الشهري')}<input inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
+      <label>${L('ساعات العمل اليومية')}<input inputmode="decimal" name="hours" required value="${esc(e.hours??8)}"></label>
+      <label>${L('الهاتف')}<input type="tel" name="phone" value="${esc(e.phone||"")}"></label>
+      <label>${L('الرقم الوطني')}<input inputmode="numeric" name="nid" value="${esc(e.nid||"")}"></label></div>
+    <details ${e.endDate?"open":""} style="margin-top:4px"><summary>${L('إنهاء الخدمة وملاحظات')}</summary>
+    <div class="fields"><label>${L('تاريخ انتهاء الخدمة')}<input type="date" name="endDate" value="${esc(e.endDate||"")}"></label>
+      <label>${L('سبب الإنهاء')}<select name="endReason"><option value=""></option>${END_REASONS.map(r=>`<option value="${esc(r)}" ${r===e.endReason?"selected":""}>${esc(lbl(r))}</option>`).join("")}</select></label>
+      <label class="full">${L('ملاحظات')}<textarea name="notes" rows="2">${esc(e.notes||"")}</textarea></label></div></details>`,
   d => {
     d.name = d.name.trim(); if(!d.name) return false;
     if(!d.endDate) d.endReason = "";
     if(id) Object.assign(empById(id), d); else { const n = {id:uid(), ...d}; db.employees.push(n); if(!state.attEmp) state.attEmp = n.id; }
-    save(); render(); toast("تم الحفظ");
+    save(); render(); toast(L('تم الحفظ'));
   });
 }
 
 function editRecord(kind, id, empId){
-  const T = {advances:["سلفة","المبلغ","amount"], overtime:["ساعات إضافية","عدد الساعات (سالب للنقص)","hours"]}[kind];
+  const T = {advances:[L('سلفة'),L('المبلغ'),"amount"], overtime:[L('ساعات إضافية'),L('عدد الساعات (سالب للنقص)'),"hours"]}[kind];
   const listTab = state.tab === kind;
   const r = id ? db[kind].find(x=>x.id===id) : { empId, date: !listTab || isCurMonth() ? today() : ym(state.y,state.m)+"-01" };
-  openDialog(`<h3>${id?"تعديل ":""}${T[0]}</h3>
-    <label>الموظف<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
-    <div class="fields"><label>التاريخ<input type="date" name="date" required value="${esc(r.date||"")}"></label>
+  openDialog(`<h3>${id?L('تعديل '):""}${T[0]}</h3>
+    <label>${L('الموظف')}<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
+    <div class="fields"><label>${L('التاريخ')}<input type="date" name="date" required value="${esc(r.date||"")}"></label>
       <label>${T[1]}<input inputmode="decimal" name="${T[2]}" required value="${esc(r[T[2]]??"")}"></label></div>
-    <label style="margin-top:12px">ملاحظات<input name="note" value="${esc(r.note||"")}"></label>`,
+    <label style="margin-top:12px">${L('ملاحظات')}<input name="note" value="${esc(r.note||"")}"></label>`,
   (d, v) => {
     snapshot();
-    if(v === "del"){ db[kind] = db[kind].filter(x=>x.id!==id); save(); render(); return toast("تم الحذف", true); }
+    if(v === "del"){ db[kind] = db[kind].filter(x=>x.id!==id); save(); render(); return toast(L('تم الحذف'), true); }
     if(id) Object.assign(db[kind].find(x=>x.id===id), d); else db[kind].push({id:uid(), ...d});
-    save(); render(); toast("تم الحفظ");
-  }, id ? `<button class="btn danger-ghost" value="del" aria-label="حذف">${ic("trash")}</button>` : "");
+    save(); render(); toast(L('تم الحفظ'));
+  }, id ? `<button class="btn danger-ghost" value="del" aria-label="${L('حذف')}">${ic("trash")}</button>` : "");
 }
 
 function editLeave(id, empId){
   const r = id ? db.leaves.find(x=>x.id===id) : { empId, from: today(), to: today(), type:"سنوية" };
-  const f = openDialog(`<h3>${id?"تعديل إجازة":"إجازة جديدة"}</h3>
-    <label>الموظف<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
-    <label>نوع الإجازة<select name="type">${LEAVE_TYPES.map(t=>`<option ${t===r.type?"selected":""}>${t}</option>`).join("")}</select></label>
-    <div class="fields"><label>من<input type="date" name="from" required value="${esc(r.from||"")}"></label>
-      <label>إلى<input type="date" name="to" required value="${esc(r.to||r.from||"")}"></label></div>
+  const f = openDialog(`<h3>${id?L('تعديل إجازة'):L('إجازة جديدة')}</h3>
+    <label>${L('الموظف')}<select name="empId" required>${empOptions(r.empId, !id)}</select></label>
+    <label>${L('نوع الإجازة')}<select name="type">${LEAVE_TYPES.map(t=>`<option value="${esc(t)}" ${t===r.type?"selected":""}>${esc(lbl(t))}</option>`).join("")}</select></label>
+    <div class="fields"><label>${L('من')}<input type="date" name="from" required value="${esc(r.from||"")}"></label>
+      <label>${L('إلى')}<input type="date" name="to" required value="${esc(r.to||r.from||"")}"></label></div>
     <div class="live" id="lvInfo" style="margin-top:12px"></div>
-    <label>ملاحظات<input name="note" value="${esc(r.note||"")}"></label>`,
+    <label>${L('ملاحظات')}<input name="note" value="${esc(r.note||"")}"></label>`,
   (d, v) => {
     snapshot();
-    if(v === "del"){ db.leaves = db.leaves.filter(x=>x.id!==id); save(); render(); return toast("تم الحذف", true); }
+    if(v === "del"){ db.leaves = db.leaves.filter(x=>x.id!==id); save(); render(); return toast(L('تم الحذف'), true); }
     if(d.to < d.from) d.to = d.from;
     if(id) Object.assign(db.leaves.find(x=>x.id===id), d); else db.leaves.push({id:uid(), ...d});
-    save(); render(); toast("تم الحفظ");
-  }, id ? `<button class="btn danger-ghost" value="del" aria-label="حذف">${ic("trash")}</button>` : "");
+    save(); render(); toast(L('تم الحفظ'));
+  }, id ? `<button class="btn danger-ghost" value="del" aria-label="${L('حذف')}">${ic("trash")}</button>` : "");
   const upd = ev => {
     if(ev?.target === f.from && f.from.value && (!f.to.value || f.to.value < f.from.value)) f.to.value = f.from.value;
     const a = parseDate(f.from.value), b = parseDate(f.to.value), e = empById(f.empId.value);
     const n = a!=null && b!=null && b>=a ? Math.round((b-a)/DAY)+1 : 0;
-    $("#lvInfo").innerHTML = `<b>${n} يوم</b>` + (e && f.type.value==="سنوية" ? ` · الرصيد الحالي ${nb(leaveBalance(e, +f.from.value.slice(0,4) || now().getFullYear()))} يوم` : f.type.value==="بدون راتب" ? " · تُخصم من الراتب" : "");
+    $("#lvInfo").innerHTML = `<b>${L('{0} يوم', n)}</b>` + (e && f.type.value==="سنوية" ? ` · ${L('الرصيد الحالي {0} يوم', nb(leaveBalance(e, +f.from.value.slice(0,4) || now().getFullYear())))}` : f.type.value==="بدون راتب" ? L(' · تُخصم من الراتب') : "");
   };
   f.addEventListener("change", upd); upd();
 }
@@ -1071,13 +1516,13 @@ function editLeave(id, empId){
 function editPay(empId){
   const e = empById(empId), {y,m} = state, rec = db.payroll[ym(y,m)]?.[empId] || {};
   openDialog(`<h3>${esc(e.name)} — ${MONTHS[m-1]} ${y}</h3>
-    <div class="fields"><label>أيام غياب<input inputmode="decimal" name="absDays" value="${esc(rec.absDays||"")}"></label>
-      <label>ساعات تأخير<input inputmode="decimal" name="lateHours" value="${esc(rec.lateHours||"")}"></label>
-      <label>مكافآت / علاوات<input inputmode="decimal" name="bonus" value="${esc(rec.bonus||"")}"></label>
-      <label>خصومات أخرى<input inputmode="decimal" name="otherDed" value="${esc(rec.otherDed||"")}"></label>
-      <label class="full">ملاحظة<input name="note" value="${esc(rec.note||"")}"></label></div>
-    <p class="note">السلف والإجازات بدون راتب وساعات الدوام تُحسب تلقائياً من سجلاتها.</p>`,
-  d => { Object.assign(((db.payroll[ym(y,m)] ||= {})[empId] ||= {}), d); save(); render(); toast("تم الحفظ"); });
+    <div class="fields"><label>${L('أيام غياب')}<input inputmode="decimal" name="absDays" value="${esc(rec.absDays||"")}"></label>
+      <label>${L('ساعات تأخير')}<input inputmode="decimal" name="lateHours" value="${esc(rec.lateHours||"")}"></label>
+      <label>${L('مكافآت / علاوات')}<input inputmode="decimal" name="bonus" value="${esc(rec.bonus||"")}"></label>
+      <label>${L('خصومات أخرى')}<input inputmode="decimal" name="otherDed" value="${esc(rec.otherDed||"")}"></label>
+      <label class="full">${L('ملاحظة')}<input name="note" value="${esc(rec.note||"")}"></label></div>
+    <p class="note">${L('السلف والإجازات بدون راتب وساعات الدوام تُحسب تلقائياً من سجلاتها.')}</p>`,
+  d => { Object.assign(((db.payroll[ym(y,m)] ||= {})[empId] ||= {}), d); save(); render(); toast(L('تم الحفظ')); });
 }
 
 function editDay(empId, d){
@@ -1085,26 +1530,26 @@ function editDay(empId, d){
   const wd = new Date(Date.UTC(y,m-1,d)).getUTCDay(), fresh = !r.in && !r.out;
   const prev = (() => { for(let i=d-1;i>=1;i--){ const p = sheet.days?.[i]; if(p?.in && p?.out) return p; } return null; })();
   const S = db.settings;
-  const chips = [prev ? `<button type="button" class="chip" data-fill="${esc(prev.in)}|${esc(prev.out)}">مثل آخر يوم ${nb(esc(prev.in))}–${nb(esc(prev.out))}</button>` : "",
-    S.defIn && S.defOut && !(prev && prev.in===S.defIn && prev.out===S.defOut) ? `<button type="button" class="chip" data-fill="${esc(S.defIn)}|${esc(S.defOut)}">المعتاد ${nb(esc(S.defIn))}–${nb(esc(S.defOut))}</button>` : ""].join("");
+  const chips = [prev ? `<button type="button" class="chip" data-fill="${esc(prev.in)}|${esc(prev.out)}">${L('مثل آخر يوم')} ${nb(esc(prev.in))}–${nb(esc(prev.out))}</button>` : "",
+    S.defIn && S.defOut && !(prev && prev.in===S.defIn && prev.out===S.defOut) ? `<button type="button" class="chip" data-fill="${esc(S.defIn)}|${esc(S.defOut)}">${L('المعتاد')} ${nb(esc(S.defIn))}–${nb(esc(S.defOut))}</button>` : ""].join("");
   const f = openDialog(`<h3>${esc(emp.name)} · ${WEEKDAYS[wd]} ${d} ${MONTHS[m-1]}</h3>
     ${chips ? `<div class="chips">${chips}</div>` : ""}
-    <div class="fields">${timeField("الحضور","in", r.in || (fresh ? S.defIn : ""))}${timeField("الانصراف","out", r.out || (fresh ? S.defOut : ""))}</div>
-    <label class="check"><input type="checkbox" name="holiday" ${r.holiday?"checked":""}> عطلة (لا ساعات مطلوبة)</label>
+    <div class="fields">${timeField(L('الحضور'),"in", r.in || (fresh ? S.defIn : ""))}${timeField(L('الانصراف'),"out", r.out || (fresh ? S.defOut : ""))}</div>
+    <label class="check"><input type="checkbox" name="holiday" ${r.holiday?"checked":""}> ${L('عطلة (لا ساعات مطلوبة)')}</label>
     <div class="live" id="dayInfo"></div>
-    <details ${r.lf||r.lt||r.lm||r.req?"open":""}><summary>مغادرة مؤقتة وتعديل الساعات المطلوبة</summary>
-      <div class="fields">${timeField("مغادرة من","lf",r.lf)}${timeField("عودة","lt",r.lt)}
-        ${timeField("مدة مغادرة (يدوي)","lm",r.lm,{now:false})}${timeField("المطلوبة لهذا اليوم","req",r.req,{now:false})}</div>
+    <details ${r.lf||r.lt||r.lm||r.req?"open":""}><summary>${L('مغادرة مؤقتة وتعديل الساعات المطلوبة')}</summary>
+      <div class="fields">${timeField(L('مغادرة من'),"lf",r.lf)}${timeField(L('عودة'),"lt",r.lt)}
+        ${timeField(L('مدة مغادرة (يدوي)'),"lm",r.lm,{now:false})}${timeField(L('المطلوبة لهذا اليوم'),"req",r.req,{now:false})}</div>
     </details>`,
   (data, v) => {
     const sh = attSheet(empId,y,m,true); sh.days ||= {};
     if(v === "clear") delete sh.days[d];
     else sh.days[d] = {in:data.in, out:data.out, holiday:data.holiday, lf:data.lf, lt:data.lt, lm:data.lm, req:data.req};
-    save(); render(); toast(v === "clear" ? "تم مسح اليوم" : "تم الحفظ");
-  }, `<button class="btn danger-ghost" value="clear" aria-label="مسح اليوم">${ic("trash")}</button>`);
+    save(); render(); toast(v === "clear" ? L('تم مسح اليوم') : L('تم الحفظ'));
+  }, `<button class="btn danger-ghost" value="clear" aria-label="${L('مسح اليوم')}">${ic("trash")}</button>`);
   const info = () => {
     const c = calcDay(sheet, {in:f.elements.in.value, out:f.elements.out.value, holiday:f.holiday.checked, lf:f.lf.value, lt:f.lt.value, lm:f.lm.value, req:f.req.value});
-    $("#dayInfo").innerHTML = c ? `الفعلية <b>${hm(c.actual)}</b> · المطلوبة ${hm(c.req)} · ${c.over?`<b class="pos">زيادة ${hm(c.over)}</b>`:c.short?`<b class="neg">نقص ${hm(c.short)}</b>`:"مطابق"}` : "اختر الحضور والانصراف";
+    $("#dayInfo").innerHTML = c ? `${L('الفعلية')} <b>${hm(c.actual)}</b> · ${L('المطلوبة')} ${hm(c.req)} · ${c.over?`<b class="pos">${L('زيادة')} ${hm(c.over)}</b>`:c.short?`<b class="neg">${L('نقص')} ${hm(c.short)}</b>`:L('مطابق')}` : L('اختر الحضور والانصراف');
   };
   f.addEventListener("change", info);
   f.querySelectorAll("[data-fill]").forEach(b => b.onclick = () => { const [a,c] = b.dataset.fill.split("|"); tfSet(f,"in",a); tfSet(f,"out",c); info(); });
@@ -1113,18 +1558,18 @@ function editDay(empId, d){
 
 function attSettings(){
   const {y,m} = state, emp = empById(state.attEmp), sheet = attSheet(emp.id,y,m);
-  openDialog(`<h3>دوام ${esc(emp.name)} · ${MONTHS[m-1]}</h3>
-    <div class="fields">${timeField("الساعات المطلوبة يومياً","req",sheet.req || db.settings.attReq,{now:false})}
-      <label>سعر الساعة الإضافية<input inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${esc(fix(otRateFor(emp)).toFixed(2))} تلقائي"></label></div>
-    <label class="check" style="margin-top:8px"><input type="checkbox" name="autoPay" ${sheet.manual?"":"checked"} ${db.settings.autoAtt===false?"disabled":""}> احتساب هذا الشهر في الرواتب تلقائياً</label>
-    <p class="note">اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ ${esc(db.settings.monthDays)} ÷ ساعات العمل × ${esc(db.settings.otMultiplier)}.${db.settings.autoAtt===false?" الاحتساب التلقائي متوقف من الإعدادات العامة.":""}</p>`,
-  d => { const sh = attSheet(emp.id,y,m,true); sh.req = d.req; sh.rate = d.rate; if(db.settings.autoAtt!==false) sh.manual = !d.autoPay; save(); render(); toast("تم الحفظ"); });
+  openDialog(`<h3>${L('دوام')} ${esc(emp.name)} · ${MONTHS[m-1]}</h3>
+    <div class="fields">${timeField(L('الساعات المطلوبة يومياً'),"req",sheet.req || db.settings.attReq,{now:false})}
+      <label>${L('سعر الساعة الإضافية')}<input inputmode="decimal" name="rate" value="${esc(sheet.rate ?? "")}" placeholder="${L('{0} تلقائي', esc(fix(otRateFor(emp)).toFixed(2)))}"></label></div>
+    <label class="check" style="margin-top:8px"><input type="checkbox" name="autoPay" ${sheet.manual?"":"checked"} ${db.settings.autoAtt===false?"disabled":""}> ${L('احتساب هذا الشهر في الرواتب تلقائياً')}</label>
+    <p class="note">${L('اترك السعر فارغاً ليُحسب تلقائياً: الراتب ÷ {0} ÷ ساعات العمل', esc(db.settings.monthDays))} × ${esc(db.settings.otMultiplier)}.${db.settings.autoAtt===false?L(' الاحتساب التلقائي متوقف من الإعدادات العامة.'):""}</p>`,
+  d => { const sh = attSheet(emp.id,y,m,true); sh.req = d.req; sh.rate = d.rate; if(db.settings.autoAtt!==false) sh.manual = !d.autoPay; save(); render(); toast(L('تم الحفظ')); });
 }
 
 function pickEmployee(){
   const d = $("#dlg");
-  const list = q => db.employees.filter(e => !q || e.name.includes(q)).map(e => `<button class="row row-btn" data-pick="${esc(e.id)}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.endDate?" · منتهية":""}</small></div>${e.id===state.attEmp?ic("check","sm"):""}</button>`).join("") || `<div class="empty">لا نتائج</div>`;
-  d.innerHTML = `<div class="sheet-grab"></div><div class="sheet-body"><h3>اختر الموظف</h3>${db.employees.length>6?`<input type="search" placeholder="بحث" id="pickQ" style="margin:0 0 10px">`:""}</div><div class="group" style="margin:0 16px 16px" id="pickList">${list("")}</div>`;
+  const list = q => db.employees.filter(e => !q || e.name.includes(q)).map(e => `<button class="row row-btn" data-pick="${esc(e.id)}">${avatar(e.name)}<div class="info"><b>${esc(e.name)}</b><small>${esc(e.title||"")}${e.endDate?L(' · منتهية'):""}</small></div>${e.id===state.attEmp?ic("check","sm"):""}</button>`).join("") || `<div class="empty">${L('لا نتائج')}</div>`;
+  d.innerHTML = `<div class="sheet-grab"></div><div class="sheet-body"><h3>${L('اختر الموظف')}</h3>${db.employees.length>6?`<input type="search" placeholder="${L('بحث')}" id="pickQ" style="margin:0 0 10px">`:""}</div><div class="group" style="margin:0 16px 16px" id="pickList">${list("")}</div>`;
   d.showModal();
   $("#pickQ")?.addEventListener("input", e => { $("#pickList").innerHTML = list(e.target.value.trim()); });
   $("#pickList").onclick = e => { const b = e.target.closest("[data-pick]"); if(b){ state.attEmp = b.dataset.pick; d.close(); render(); } };
@@ -1132,16 +1577,16 @@ function pickEmployee(){
 
 function quickFill(){
   const {y,m} = state, emp = empById(state.attEmp), nd = daysInMonth(y,m);
-  openDialog(`<h3>تعبئة سريعة · ${esc(emp.name)}</h3>
-    <div class="fields">${timeField("الحضور","in",db.settings.defIn,{now:false})}${timeField("الانصراف","out",db.settings.defOut,{now:false})}
-      <label>من يوم<input inputmode="numeric" name="from" value="1"></label>
-      <label>إلى يوم<input inputmode="numeric" name="to" value="${isCurMonth() ? now().getDate() : nd}"></label></div>
-    <label class="check"><input type="checkbox" name="skipWeekend" checked> تخطّي يوم ${WEEKDAYS[db.settings.weekend]}</label>
-    <label class="check"><input type="checkbox" name="onlyEmpty" checked> الأيام الفارغة فقط</label>
-    <label class="check"><input type="checkbox" name="remember" checked> حفظها كأوقات معتادة</label>
-    <p class="note">أيام الإجازات المسجّلة تُتخطّى تلقائياً. يمكنك بعدها تعديل أي يوم بالضغط عليه.</p>`,
+  openDialog(`<h3>${L('تعبئة سريعة')} · ${esc(emp.name)}</h3>
+    <div class="fields">${timeField(L('الحضور'),"in",db.settings.defIn,{now:false})}${timeField(L('الانصراف'),"out",db.settings.defOut,{now:false})}
+      <label>${L('من يوم')}<input inputmode="numeric" name="from" value="1"></label>
+      <label>${L('إلى يوم')}<input inputmode="numeric" name="to" value="${isCurMonth() ? now().getDate() : nd}"></label></div>
+    <label class="check"><input type="checkbox" name="skipWeekend" checked> ${L('تخطّي يوم')} ${WEEKDAYS[db.settings.weekend]}</label>
+    <label class="check"><input type="checkbox" name="onlyEmpty" checked> ${L('الأيام الفارغة فقط')}</label>
+    <label class="check"><input type="checkbox" name="remember" checked> ${L('حفظها كأوقات معتادة')}</label>
+    <p class="note">${L('أيام الإجازات المسجّلة تُتخطّى تلقائياً. يمكنك بعدها تعديل أي يوم بالضغط عليه.')}</p>`,
   d => {
-    if(!d.in || !d.out){ toast("اختر الحضور والانصراف"); return false; }
+    if(!d.in || !d.out){ toast(L('اختر الحضور والانصراف')); return false; }
     snapshot();
     const sh = attSheet(emp.id,y,m,true); sh.days ||= {}; let n = 0;
     for(let i=Math.max(1,num(d.from)); i<=Math.min(nd,num(d.to)); i++){
@@ -1153,67 +1598,67 @@ function quickFill(){
       sh.days[i] = {...(cur||{}), in:d.in, out:d.out}; n++;
     }
     if(d.remember){ db.settings.defIn = d.in; db.settings.defOut = d.out; }
-    save(); render(); toast(`تمت تعبئة ${n} يوم`, true);
-  }, "", "تعبئة");
+    save(); render(); toast(`${L('تمت تعبئة {0} يوم', n)}`, true);
+  }, "", L('تعبئة'));
 }
 
 /* ========== قسيمة الراتب ========== */
 function slipHTML(e, y, m){
   const p = calcPay(e,y,m), S = db.settings;
-  const L = (t,v) => `<dt>${t}</dt><dd>${money(v)}</dd>`;
-  const ded = [p.absDed?L(`غياب (${fix(p.absDays)} يوم)`,p.absDed):"", p.unpaidDed?L(`إجازة بدون راتب (${p.unpaidDays} يوم)`,p.unpaidDed):"",
-    p.lateDed?L(`تأخير (${fix(p.lateHours)} س)`,p.lateDed):"", p.adv?L("سلف",p.adv):"", p.otherDed?L("خصومات أخرى",p.otherDed):"",
-    p.ss?L(`الضمان الاجتماعي ${esc(S.ssPct)}%`,p.ss):"", p.otPay<0?L(`نقص ساعات (${hmText(-p.otHours*60)} س)`,-p.otPay):""].join("");
+  const line = (t,v) => `<dt>${t}</dt><dd>${money(v)}</dd>`;
+  const ded = [p.absDed?line(`${L('غياب ({0} يوم)', fix(p.absDays))}`,p.absDed):"", p.unpaidDed?line(`${L('إجازة بدون راتب ({0} يوم)', p.unpaidDays)}`,p.unpaidDed):"",
+    p.lateDed?line(`${L('تأخير ({0} س)', fix(p.lateHours))}`,p.lateDed):"", p.adv?line(L('سلف'),p.adv):"", p.otherDed?line(L('خصومات أخرى'),p.otherDed):"",
+    p.ss?line(`${L('الضمان الاجتماعي')} ${esc(S.ssPct)}%`,p.ss):"", p.otPay<0?line(`${L('نقص ساعات ({0} س)', hmText(-p.otHours*60))}`,-p.otPay):""].join("");
   return `<div class="slip">
-    <h2>قسيمة راتب</h2><div class="subt">${esc(S.company||"")}${S.company?" · ":""}${MONTHS[m-1]} ${y}</div>
-    <dl><dt>الموظف</dt><dd>${esc(e.name)}</dd><dt>المسمى</dt><dd>${esc(e.title||"—")}</dd><dt>أيام الاستحقاق</dt><dd>${p.days}</dd></dl>
-    <h4>المستحقات</h4><dl>${L("الراتب الأساسي",p.base)}${p.otPay>0?L(`إضافي (${hmText(p.otHours*60)} س)`,p.otPay):""}${p.bonus?L("مكافآت وعلاوات",p.bonus):""}</dl>
-    <h4>الاستقطاعات</h4><dl>${ded || `<dt>لا يوجد</dt><dd></dd>`}</dl>
-    <div class="net"><span>صافي الراتب</span><span>${money(p.net)}</span></div>
+    <h2>${L('قسيمة راتب')}</h2><div class="subt">${esc(S.company||"")}${S.company?" · ":""}${MONTHS[m-1]} ${y}</div>
+    <dl><dt>${L('الموظف')}</dt><dd>${esc(e.name)}</dd><dt>${L('المسمى')}</dt><dd>${esc(e.title||"—")}</dd><dt>${L('أيام الاستحقاق')}</dt><dd>${p.days}</dd></dl>
+    <h4>${L('المستحقات')}</h4><dl>${line(L('الراتب الأساسي'),p.base)}${p.otPay>0?line(`${L('إضافي ({0} س)', hmText(p.otHours*60))}`,p.otPay):""}${p.bonus?line(L('مكافآت وعلاوات'),p.bonus):""}</dl>
+    <h4>${L('الاستقطاعات')}</h4><dl>${ded || `<dt>${L('لا يوجد')}</dt><dd></dd>`}</dl>
+    <div class="net"><span>${L('صافي الراتب')}</span><span>${money(p.net)}</span></div>
     ${p.note?`<p class="note">${esc(p.note)}</p>`:""}
-    ${p.delivered?`<p class="note">تم التسليم بتاريخ ${esc(p.deliveredDate)}</p>`:""}
-    <p class="note" style="margin-top:28px">توقيع الموظف: ____________ &nbsp;&nbsp; توقيع الإدارة: ____________</p></div>`;
+    ${p.delivered?`<p class="note">${L('تم التسليم بتاريخ')} ${esc(p.deliveredDate)}</p>`:""}
+    <p class="note" style="margin-top:28px">${L('توقيع الموظف: ____________ &nbsp;&nbsp; توقيع الإدارة:')} ____________</p></div>`;
 }
 function slipText(e,y,m){
-  const p = calcPay(e,y,m), S = db.settings, L = [];
-  L.push(`قسيمة راتب ${MONTHS[m-1]} ${y}${S.company?" — "+S.company:""}`, `الموظف: ${e.name}`, `الراتب الأساسي: ${moneyText(p.base)}`);
-  if(p.otPay) L.push(`الإضافي: ${moneyText(p.otPay)}`);
-  if(p.bonus) L.push(`مكافآت: ${moneyText(p.bonus)}`);
-  if(p.deductions) L.push(`الخصومات: ${moneyText(p.deductions)}${p.adv?` (منها سلف ${moneyText(p.adv)})`:""}`);
-  L.push(`الصافي: ${moneyText(p.net)}`);
-  return L.join("\n");
+  const p = calcPay(e,y,m), S = db.settings, lines = [];
+  lines.push(`${L('قسيمة راتب')} ${MONTHS[m-1]} ${y}${S.company?" — "+S.company:""}`, `${L('الموظف:')} ${e.name}`, `${L('الراتب الأساسي:')} ${moneyText(p.base)}`);
+  if(p.otPay) lines.push(`${L('الإضافي:')} ${moneyText(p.otPay)}`);
+  if(p.bonus) lines.push(`${L('مكافآت:')} ${moneyText(p.bonus)}`);
+  if(p.deductions) lines.push(`${L('الخصومات:')} ${moneyText(p.deductions)}${p.adv?` ${L('(منها سلف')} ${moneyText(p.adv)})`:""}`);
+  lines.push(`${L('الصافي:')} ${moneyText(p.net)}`);
+  return lines.join("\n");
 }
 function showSlip(empId){
   const e = empById(empId), {y,m} = state, d = $("#dlg");
   d.innerHTML = `<div class="sheet-grab"></div><div class="sheet-body">${slipHTML(e,y,m)}</div><div class="sheet-foot">
-    <button class="btn primary" type="button" id="slipPrint">${ic("printer","sm")} طباعة / PDF</button>
-    <button class="btn" type="button" id="slipShare">${ic("share","sm")} مشاركة</button></div>`;
+    <button class="btn primary" type="button" id="slipPrint">${L('{0} طباعة', ic("printer","sm"))} / PDF</button>
+    <button class="btn" type="button" id="slipShare">${L('{0} مشاركة', ic("share","sm"))}</button></div>`;
   d.showModal();
   $("#slipPrint").onclick = () => { $("#print").innerHTML = slipHTML(e,y,m); d.close(); whenClosed(d).then(() => { document.body.classList.add("printing"); setTimeout(()=>{ print(); document.body.classList.remove("printing"); }, 30); }); };
   $("#slipShare").onclick = async () => {
     const text = slipText(e,y,m);
     if(navigator.share){ try{ await navigator.share({text}); }catch(err){} }
-    else { try{ await navigator.clipboard.writeText(text); toast("تم النسخ"); }catch(err){ toast("تعذّر النسخ"); } }
+    else { try{ await navigator.clipboard.writeText(text); toast(L('تم النسخ')); }catch(err){ toast(L('تعذّر النسخ')); } }
   };
 }
 
 /* ========== النسخ الاحتياطي والنقل ========== */
 const exportPayload = () => JSON.stringify({app:"payroll-app", v:2, exportedAt:new Date().toISOString(), data:db});
 function markBackedUp(){ db.lastBackup = today(); db.changes = 0; save(true); }
-function blockedExport(){ if(readOnly === "corrupt"){ showAlert("corrupt", ALERT.corrupt()); toast("استخدم «تنزيل البيانات كما هي» من التنبيه"); return true; } return false; }
+function blockedExport(){ if(readOnly === "corrupt"){ showAlert("corrupt", ALERT.corrupt()); toast(L('استخدم «تنزيل البيانات كما هي» من التنبيه')); return true; } return false; }
 async function backup(){
   if(blockedExport()) return;
   const text = exportPayload(), name = `payroll-backup-${today()}.json`;
   try{
     const file = new File([text], name, {type:"application/json"});
-    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"نسخة الرواتب"}); markBackedUp(); render(); return toast("تم — احفظ الملف في «الملفات» أو أرسله لنفسك"); }
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:L('نسخة الرواتب')}); markBackedUp(); render(); return toast(L('تم — احفظ الملف في «الملفات» أو أرسله لنفسك')); }
   }catch(err){ if(err?.name === "AbortError") return; }
-  download(name, text); markBackedUp(); render(); toast("تم تنزيل ملف النسخة");
+  download(name, text); markBackedUp(); render(); toast(L('تم تنزيل ملف النسخة'));
 }
 async function copyData(){
   if(blockedExport()) return;
   const text = exportPayload();
-  try{ await navigator.clipboard.writeText(text); markBackedUp(); render(); toast("تم نسخ كل البيانات — الصقها في التطبيق الآخر"); }
+  try{ await navigator.clipboard.writeText(text); markBackedUp(); render(); toast(L('تم نسخ كل البيانات — الصقها في التطبيق الآخر')); }
   catch(err){ pasteDialog(text); }
 }
 // المعرّفات تُنشأ بـ uid() دائماً؛ أي معرّف خارج هذا النمط يعني ملفاً تالفاً أو معدّلاً فيُرفض كاملاً
@@ -1227,35 +1672,35 @@ function countBadIds(d){
   return bad;
 }
 function parseBackup(txt){
-  let d; try{ d = JSON.parse(String(txt).trim()); }catch(err){ return {error:"النص ليس نسخة احتياطية صالحة — تأكد أنك نسخت كل النص أو اخترت الملف الصحيح."}; }
+  let d; try{ d = JSON.parse(String(txt).trim()); }catch(err){ return {error:L('النص ليس نسخة احتياطية صالحة — تأكد أنك نسخت كل النص أو اخترت الملف الصحيح.')}; }
   if(d && d.app === "payroll-app" && d.data) d = d.data;
-  if(!d || typeof d !== "object" || !Array.isArray(d.employees)) return {error:"هذه ليست بيانات تطبيق الرواتب."};
+  if(!d || typeof d !== "object" || !Array.isArray(d.employees)) return {error:L('هذه ليست بيانات تطبيق الرواتب.')};
   const bad = countBadIds(d);
-  if(bad) return {error:`الملف يحتوي ${bad} معرّفاً غير صالح، وقد يكون تالفاً أو معدّلاً، فلم يُستورد.`};
+  if(bad) return {error:`${L('الملف يحتوي {0} معرّفاً غير صالح، وقد يكون تالفاً أو معدّلاً، فلم يُستورد.', bad)}`};
   const m = migrate(d);
-  if(m.error === "newer") return {error:`النسخة من إصدار أحدث من التطبيق (تنسيق ${m.from}). حدّث التطبيق أولاً.`};
-  if(m.error) return {error:"إصدار تنسيق البيانات في الملف غير معروف."};
+  if(m.error === "newer") return {error:`${L('النسخة من إصدار أحدث من التطبيق (تنسيق {0}). حدّث التطبيق أولاً.', m.from)}`};
+  if(m.error) return {error:L('إصدار تنسيق البيانات في الملف غير معروف.')};
   return {data: m.data};
 }
 async function restoreFrom(txt){
-  if(readOnly === "newer"){ showAlert("restore-failed", ALERT.restoreFailed("البيانات الحالية من إصدار أحدث؛ حدّث التطبيق قبل الاستعادة حتى لا تُستبدل.")); return false; }
+  if(readOnly === "newer"){ showAlert("restore-failed", ALERT.restoreFailed(L('البيانات الحالية من إصدار أحدث؛ حدّث التطبيق قبل الاستعادة حتى لا تُستبدل.'))); return false; }
   const parsed = parseBackup(txt);
   if(parsed.error){ showAlert("restore-failed", ALERT.restoreFailed(parsed.error)); return false; }
   const d = parsed.data;
-  const ok = await ask(`<b>البيانات الجديدة:</b> ${summarize(d)}${db.employees.length ? `<br><b>ستُستبدل الحالية:</b> ${summarize(db)}<br>تُحفظ لقطة من البيانات الحالية قبل الاستبدال.` : ""}`, {title:"استعادة البيانات", ok:"استعادة"});
+  const ok = await ask(`<b>${L('البيانات الجديدة:')}</b> ${summarize(d)}${db.employees.length ? `<br><b>${L('ستُستبدل الحالية:')}</b> ${summarize(db)}<br>${L('تُحفظ لقطة من البيانات الحالية قبل الاستبدال.')}` : ""}`, {title:L('استعادة البيانات'), ok:L('استعادة')});
   if(!ok) return false;
   takeSnap("قبل الاستعادة");
   readOnly = null; clearAlert("corrupt");
   db = normalize(d); db.changes = 0; db.lastBackup = db.lastBackup || today(); save(true);
-  clearAlert("restore-failed"); render(); toast("تمت الاستعادة ✓"); return true;
+  clearAlert("restore-failed"); render(); toast(L('تمت الاستعادة ✓')); return true;
 }
 function pasteDialog(prefill){
   const f = openDialog(prefill
-    ? `<h3>انسخ هذا النص</h3><p class="note" style="margin-top:0">اضغط مطولاً على النص ← تحديد الكل ← نسخ، ثم افتح التطبيق الآخر واختر «لصق البيانات».</p><textarea rows="6" readonly>${esc(prefill)}</textarea>`
-    : `<h3>لصق البيانات</h3><p class="note" style="margin-top:0">الصق هنا البيانات التي نسختها من المتصفح أو من جهاز آخر.</p><button type="button" class="btn block" id="readClip">${ic("paste","sm")} لصق من الحافظة</button><textarea name="data" rows="5" placeholder="أو الصق النص هنا يدوياً" style="margin-top:8px"></textarea>`,
-    d => prefill ? undefined : restoreFrom(d.data), "", prefill ? "تم" : "استعادة");
+    ? `<h3>${L('انسخ هذا النص')}</h3><p class="note" style="margin-top:0">${L('اضغط مطولاً على النص ← تحديد الكل ← نسخ، ثم افتح التطبيق الآخر واختر «لصق البيانات».')}</p><textarea rows="6" readonly>${esc(prefill)}</textarea>`
+    : `<h3>${L('لصق البيانات')}</h3><p class="note" style="margin-top:0">${L('الصق هنا البيانات التي نسختها من المتصفح أو من جهاز آخر.')}</p><button type="button" class="btn block" id="readClip">${L('{0} لصق من الحافظة', ic("paste","sm"))}</button><textarea name="data" rows="5" placeholder="${L('أو الصق النص هنا يدوياً')}" style="margin-top:8px"></textarea>`,
+    d => prefill ? undefined : restoreFrom(d.data), "", prefill ? L('تم') : L('استعادة'));
   if(prefill){ const t = f.querySelector("textarea"); t.focus(); t.select(); }
-  $("#readClip")?.addEventListener("click", async () => { try{ const t = await navigator.clipboard.readText(); f.data.value = t; if(t && await restoreFrom(t)) $("#dlg").close(); }catch(err){ toast("الصق يدوياً في المربع"); } });
+  $("#readClip")?.addEventListener("click", async () => { try{ const t = await navigator.clipboard.readText(); f.data.value = t; if(t && await restoreFrom(t)) $("#dlg").close(); }catch(err){ toast(L('الصق يدوياً في المربع')); } });
 }
 function download(name, text){
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text],{type:"application/json"})); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
@@ -1267,26 +1712,26 @@ function loadXLSX(){
   if(window.XLSX) return Promise.resolve();
   return xlsxLoading ||= new Promise((ok,fail)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=ok; s.onerror=()=>{xlsxLoading=null;fail();}; document.head.appendChild(s); });
 }
-const payRow = (e,y,m,p) => ({"الموظف":e.name,"الشهر":MONTHS[m-1],"السنة":y,"الراتب الشهري":num(e.salary),"أيام الاستحقاق":p.days,"الراتب الأساسي":fix(p.base),"أيام غياب":p.absDays,"خصم غياب":fix(p.absDed),"إجازة بدون راتب (يوم)":p.unpaidDays,"خصمها":fix(p.unpaidDed),"ساعات تأخير":p.lateHours,"خصم تأخير":fix(p.lateDed),"سلفة":fix(p.adv),"خصومات أخرى":fix(p.otherDed),"الضمان":fix(p.ss),"ساعات الدوام (صافي)":fix(p.attHours),"أجر الدوام":fix(p.attPay),"ساعات إضافي يدوية":fix(p.manualOt),"أجر الإضافي اليدوي":fix(p.manualOtPay),"إجمالي أجر الإضافي":fix(p.otPay),"مكافآت":fix(p.bonus),"إجمالي الخصومات":fix(p.deductions),"الصافي":fix(p.net),"تم التسليم":p.delivered?"✓":"","تاريخ التسليم":p.deliveredDate,"ملاحظة":p.note});
+const payRow = (e,y,m,p) => ({[L('الموظف')]:e.name,[L('الشهر')]:MONTHS[m-1],[L('السنة')]:y,[L('الراتب الشهري')]:num(e.salary),[L('أيام الاستحقاق')]:p.days,[L('الراتب الأساسي')]:fix(p.base),[L('أيام غياب')]:p.absDays,[L('خصم غياب')]:fix(p.absDed),[L('إجازة بدون راتب (يوم)')]:p.unpaidDays,[L('خصمها')]:fix(p.unpaidDed),[L('ساعات تأخير')]:p.lateHours,[L('خصم تأخير')]:fix(p.lateDed),[L('سلفة')]:fix(p.adv),[L('خصومات أخرى')]:fix(p.otherDed),[L('الضمان')]:fix(p.ss),[L('ساعات الدوام (صافي)')]:fix(p.attHours),[L('أجر الدوام')]:fix(p.attPay),[L('ساعات إضافي يدوية')]:fix(p.manualOt),[L('أجر الإضافي اليدوي')]:fix(p.manualOtPay),[L('إجمالي أجر الإضافي')]:fix(p.otPay),[L('مكافآت')]:fix(p.bonus),[L('إجمالي الخصومات')]:fix(p.deductions),[L('الصافي')]:fix(p.net),[L('تم التسليم')]:p.delivered?"✓":"",[L('تاريخ التسليم')]:p.deliveredDate,[L('ملاحظة')]:p.note});
 async function exportXlsx(kind){
-  toast("جارٍ التجهيز…");
-  try{ await loadXLSX(); }catch(e){ return toast("تعذّر تحميل مكتبة Excel — تحقق من الاتصال"); }
+  toast(L('جارٍ التجهيز…'));
+  try{ await loadXLSX(); }catch(e){ return toast(L('تعذّر تحميل مكتبة Excel — تحقق من الاتصال')); }
   const wb = XLSX.utils.book_new(), add = (rows,name) => { const ws = XLSX.utils.json_to_sheet(rows.length?rows:[{}]); ws["!views"]=[{RTL:true}]; XLSX.utils.book_append_sheet(wb, ws, name); };
   const {y,m} = state; let file;
   if(kind === "month"){
-    add(empsForMonth(y,m).map(e=>payRow(e,y,m,calcPay(e,y,m))), "الرواتب");
-    file = `رواتب-${MONTHS[m-1]}-${y}.xlsx`;
+    add(empsForMonth(y,m).map(e=>payRow(e,y,m,calcPay(e,y,m))), L('الرواتب'));
+    file = `${L('رواتب')}-${MONTHS[m-1]}-${y}.xlsx`;
   }else{
     const yearOf = r => +(r.date||r.from||"").slice(0,4);
     const years = kind==="year" ? [y] : [...new Set([...db.advances,...db.overtime,...db.leaves].map(yearOf).concat(Object.keys(db.attendance).map(k=>+k.split("|")[1]?.slice(0,4))).filter(Boolean).concat(y))].sort();
-    add(db.employees.map((e,i)=>({"رقم":i+1,"اسم الموظف":e.name,"المسمى الوظيفي":e.title||"","تاريخ التوظيف":e.hire,"الراتب الشهري":num(e.salary),"ساعات العمل اليومية":num(e.hours),"الهاتف":e.phone||"","الرقم الوطني":e.nid||"","تاريخ انتهاء الخدمة":e.endDate||"","سبب الإنهاء":e.endDate?(e.endReason||""):"نشط"})), "الموظفين");
+    add(db.employees.map((e,i)=>({[L('رقم')]:i+1,[L('اسم الموظف')]:e.name,[L('المسمى الوظيفي')]:e.title||"",[L('تاريخ التوظيف')]:e.hire,[L('الراتب الشهري')]:num(e.salary),[L('ساعات العمل اليومية')]:num(e.hours),[L('الهاتف')]:e.phone||"",[L('الرقم الوطني')]:e.nid||"",[L('تاريخ انتهاء الخدمة')]:e.endDate||"",[L('سبب الإنهاء')]:e.endDate?lbl(e.endReason||""):L('نشط')})), L('الموظفين'));
     const pr = []; for(const yy of years) for(let mm=1;mm<=12;mm++) for(const e of empsForMonth(yy,mm)) pr.push(payRow(e,yy,mm,calcPay(e,yy,mm)));
-    add(pr, "الرواتب");
+    add(pr, L('الرواتب'));
     const inYears = r => years.includes(yearOf(r));
-    add(db.advances.filter(inYears).map(r=>({"الموظف":empName(r.empId),"التاريخ":r.date,"المبلغ":num(r.amount),"ملاحظات":r.note||""})), "السلف");
-    add(db.overtime.filter(inYears).map(r=>({"الموظف":empName(r.empId),"التاريخ":r.date,"ساعات إضافية":num(r.hours),"ملاحظات":r.note||""})), "الإضافي");
-    add(db.leaves.filter(inYears).map(l=>({"الموظف":empName(l.empId),"النوع":l.type,"من":l.from,"إلى":l.to||l.from,"الأيام":leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from)),"ملاحظات":l.note||""})), "الإجازات");
-    file = kind==="year" ? `رواتب-${y}.xlsx` : `رواتب-كل-البيانات.xlsx`;
+    add(db.advances.filter(inYears).map(r=>({[L('الموظف')]:empName(r.empId),[L('التاريخ')]:r.date,[L('المبلغ')]:num(r.amount),[L('ملاحظات')]:r.note||""})), L('السلف'));
+    add(db.overtime.filter(inYears).map(r=>({[L('الموظف')]:empName(r.empId),[L('التاريخ')]:r.date,[L('ساعات إضافية')]:num(r.hours),[L('ملاحظات')]:r.note===POST_TAG ? lbl(r.note) : (r.note||"")})), L('الإضافي'));
+    add(db.leaves.filter(inYears).map(l=>({[L('الموظف')]:empName(l.empId),[L('النوع')]:lbl(l.type),[L('من')]:l.from,[L('إلى')]:l.to||l.from,[L('الأيام')]:leaveDays(l.empId,parseDate(l.from),parseDate(l.to||l.from)),[L('ملاحظات')]:l.note||""})), L('الإجازات'));
+    file = kind==="year" ? `${L('رواتب')}-${y}.xlsx` : `${L('رواتب-كل-البيانات.')}xlsx`;
   }
   XLSX.writeFile(wb, file);
 }
@@ -1296,7 +1741,7 @@ function renderAlerts(){
   const box = $("#alerts"); if(!box) return;
   box.innerHTML = [...alerts].map(([key, a]) => `<div class="alert ${a.level === "warn" ? "warn" : ""}" data-alert="${esc(key)}">${ic("alert")}
     <div class="body"><b>${esc(a.title)}</b><p>${a.text}</p>${a.actions.length ? `<div class="btns">${a.actions.map(x => `<button class="btn sm ${x.act==="discard-corrupt"?"danger":"primary"}" data-alert-act="${esc(x.act)}">${esc(x.label)}</button>`).join("")}</div>` : ""}</div>
-    <button class="icon-btn" data-alert-close="${esc(key)}" aria-label="إغلاق التنبيه">${ic("plus","sm")}</button></div>`).join("");
+    <button class="icon-btn" data-alert-close="${esc(key)}" aria-label="${L('إغلاق التنبيه')}">${ic("plus","sm")}</button></div>`).join("");
   document.documentElement.style.setProperty("--hdr-h", $("header").offsetHeight + "px");
 }
 $("#alerts").addEventListener("click", async e => {
@@ -1305,7 +1750,7 @@ $("#alerts").addEventListener("click", async e => {
   const act = b.dataset.alertAct;
   if(act === "download-raw"){ let raw = ""; try{ raw = localStorage.getItem(KEY + "-unreadable") || localStorage.getItem(KEY) || ""; }catch(err){} return download(`payroll-unreadable-${today()}.json`, raw); }
   if(act === "discard-corrupt"){
-    if(!await ask("سيبدأ التطبيق ببيانات فارغة. النسخة غير المقروءة تبقى محفوظة جانباً ويمكن تنزيلها لاحقاً.", {title:"البدء من جديد", ok:"ابدأ من جديد", danger:true})) return;
+    if(!await ask(L('سيبدأ التطبيق ببيانات فارغة. النسخة غير المقروءة تبقى محفوظة جانباً ويمكن تنزيلها لاحقاً.'), {title:L('البدء من جديد'), ok:L('ابدأ من جديد'), danger:true})) return;
     readOnly = null; clearAlert("corrupt"); db = structuredClone(DEFAULTS); save(true); return render();
   }
   return handleAct(act);
@@ -1323,7 +1768,7 @@ function render(){
   $("#hdrBack").hidden = !h.back; $("#hdrBack").dataset.go = h.back || "";
   $("#hdrAct").innerHTML = h.act || "";
   $("#view").innerHTML = views[state.tab]();
-  if(state.tab === "settings") navigator.storage?.persisted?.().then(p => { const el = $("#persistState"); if(el) el.innerHTML = p ? `<span class="pos">مفعّل</span>` : `<span class="muted">غير مفعّل</span>`; }).catch(()=>{});
+  if(state.tab === "settings") navigator.storage?.persisted?.().then(p => { const el = $("#persistState"); if(el) el.innerHTML = p ? `<span class="pos">${L('مفعّل')}</span>` : `<span class="muted">${L('غير مفعّل')}</span>`; }).catch(()=>{});
   updateDot(); keepUI();
 }
 function go(tab){ state.tab = tab; render(); window.scrollTo(0,0); }
@@ -1344,10 +1789,11 @@ document.addEventListener("change", e => {
     const card = $(`[data-card="${CSS.escape(ds.deliver)}"]`);
     card?.querySelectorAll("dl, .net").forEach(el => motion(el, [{opacity:.45},{opacity:1}], {duration:220, easing:"ease-out"}));
     if(t.checked){ flash(card, "var(--good)"); pop(card?.querySelector("[data-deliver]"), [{transform:"scale(.6)"},{transform:"scale(1.1)", offset:.6},{transform:"scale(1)"}]); pop(card?.querySelector(".head .tag"), [{opacity:0, transform:"scale(.9)"},{opacity:1, transform:"scale(1)"}]); }
-    return toast(t.checked ? `تم تسليم راتب ${empName(ds.deliver)}` : "أُلغي التسليم", true);
+    return toast(t.checked ? `${L('تم تسليم راتب')} ${empName(ds.deliver)}` : L('أُلغي التسليم'), true);
   }
-  if(ds.set){ db.settings[ds.set] = t.type==="checkbox" ? t.checked : ds.num!=null ? num(t.value) : t.value; save(); if(t.type==="checkbox") render(); return toast("تم الحفظ"); }
-  if(ds.actFile === "restore" && t.files[0]){ t.files[0].text().then(txt => restoreFrom(txt), () => showAlert("restore-failed", ALERT.restoreFailed("تعذّرت قراءة الملف من الجهاز."))).finally(() => { t.value = ""; }); }
+  if(ds.set){ db.settings[ds.set] = t.type==="checkbox" ? t.checked : ds.num!=null ? num(t.value) : t.value; save(); if(t.type==="checkbox") render(); return toast(L('تم الحفظ')); }
+  if(t.matches("[data-lang]")) return setLang(t.value);
+  if(ds.actFile === "restore" && t.files[0]){ t.files[0].text().then(txt => restoreFrom(txt), () => showAlert("restore-failed", ALERT.restoreFailed(L('تعذّرت قراءة الملف من الجهاز.')))).finally(() => { t.value = ""; }); }
 });
 
 async function handleAct(act, arg){
@@ -1364,51 +1810,52 @@ async function handleAct(act, arg){
     case "export-month": return exportXlsx("month");
     case "export-year": return exportXlsx("year");
     case "export-all": return exportXlsx("all");
+    case "toggle-lang": return setLang(LANG === "en" ? "ar" : "en");
     case "backup": return backup();
     case "copy-data": return copyData();
     case "paste-data": return pasteDialog();
     case "att-menu": {
       const sh = attSheet(state.attEmp, state.y, state.m), auto = isAutoSheet(sh);
       return menu(`${esc(empName(state.attEmp))} · ${MONTHS[state.m-1]}`, [
-        {icon:"gear", label:"إعدادات دوام الشهر", run: attSettings},
-        {icon:"zap", label:"تعبئة سريعة", run: quickFill},
-        ...(auto ? [] : [{icon:"upload", label:"ترحيل للرواتب", run: () => handleAct("post-ot")}]),
-        {icon:"trash", label:"مسح دوام الشهر", danger:true, run: () => handleAct("clear-att")} ]);
+        {icon:"gear", label:L('إعدادات دوام الشهر'), run: attSettings},
+        {icon:"zap", label:L('تعبئة سريعة'), run: quickFill},
+        ...(auto ? [] : [{icon:"upload", label:L('ترحيل للرواتب'), run: () => handleAct("post-ot")}]),
+        {icon:"trash", label:L('مسح دوام الشهر'), danger:true, run: () => handleAct("clear-att")} ]);
     }
     case "profile-menu": {
       const id = state.profile;
       return menu(esc(empName(id)), [
-        {icon:"pencil", label:"تعديل البيانات", run: () => editEmployee(id)},
-        {icon:"trash", label:"حذف الموظف وكل سجلاته", danger:true, run: () => deleteEmployee(id)} ]);
+        {icon:"pencil", label:L('تعديل البيانات'), run: () => editEmployee(id)},
+        {icon:"trash", label:L('حذف الموظف وكل سجلاته'), danger:true, run: () => deleteEmployee(id)} ]);
     }
     case "wipe": {
-      if(!await ask("سيتم حذف كل الموظفين والرواتب والدوام والسلف والإجازات. تُحفظ لقطة قبل الحذف يمكنك استرجاعها من الإعدادات.", {title:"حذف كل البيانات", ok:"حذف الكل", danger:true})) return;
-      takeSnap("قبل حذف الكل"); db = structuredClone(DEFAULTS); save(true); render(); return toast("تم حذف كل البيانات");
+      if(!await ask(L('سيتم حذف كل الموظفين والرواتب والدوام والسلف والإجازات. تُحفظ لقطة قبل الحذف يمكنك استرجاعها من الإعدادات.'), {title:L('حذف كل البيانات'), ok:L('حذف الكل'), danger:true})) return;
+      takeSnap("قبل حذف الكل"); db = structuredClone(DEFAULTS); save(true); render(); return toast(L('تم حذف كل البيانات'));
     }
     case "clear-att": {
-      if(!await ask(`مسح كل أيام دوام ${esc(empName(state.attEmp))} في ${MONTHS[state.m-1]}؟`, {ok:"مسح", danger:true})) return;
-      snapshot(); delete db.attendance[attKey(state.attEmp,state.y,state.m)]; save(); render(); return toast("تم المسح", true);
+      if(!await ask(`${L('مسح كل أيام دوام {0} في {1}؟', esc(empName(state.attEmp)), MONTHS[state.m-1])}`, {ok:L('مسح'), danger:true})) return;
+      snapshot(); delete db.attendance[attKey(state.attEmp,state.y,state.m)]; save(); render(); return toast(L('تم المسح'), true);
     }
     case "post-ot": {
       const emp = empById(state.attEmp), {y,m} = state, sh = attSheet(emp.id,y,m);
       const res = calcAttendance(sh, y, m, sheetRate(sh, emp)), hours = fix((res.over - res.short)/60);
       const date = ym(y,m)+"-"+pad(daysInMonth(y,m));
       const exist = db.overtime.find(o => o.empId===emp.id && o.date?.startsWith(ym(y,m)) && o.note===POST_TAG);
-      if(!await ask(`ترحيل ${nb(hours)} ساعة (${hm(res.over-res.short)}) إلى رواتب ${MONTHS[m-1]}؟${exist?"<br>سيُستبدل الترحيل السابق.":""}`, {ok:"ترحيل"})) return;
+      if(!await ask(`${L('ترحيل {0} ساعة ({1}) إلى رواتب {2}؟', nb(hours), hm(res.over-res.short), MONTHS[m-1])}${exist?L('<br>سيُستبدل الترحيل السابق.'):""}`, {ok:L('ترحيل')})) return;
       snapshot();
       if(exist){ exist.hours = hours; exist.date = date; } else db.overtime.push({id:uid(), empId:emp.id, date, hours, note:POST_TAG});
-      save(); render(); return toast("تم الترحيل إلى الرواتب", true);
+      save(); render(); return toast(L('تم الترحيل إلى الرواتب'), true);
     }
   }
 }
 async function deleteEmployee(id){
-  if(!await ask(`حذف «${esc(empName(id))}» مع كل سجلاته (السلف، الإضافي، الإجازات، الدوام، الرواتب)؟`, {title:"حذف موظف", ok:"حذف", danger:true})) return;
+  if(!await ask(`${L('حذف «{0}» مع كل سجلاته (السلف، الإضافي، الإجازات، الدوام، الرواتب)؟', esc(empName(id)))}`, {title:L('حذف موظف'), ok:L('حذف'), danger:true})) return;
   snapshot(); takeSnap("قبل حذف موظف");
   db.employees = db.employees.filter(x=>x.id!==id);
   for(const k of ["advances","overtime","leaves"]) db[k] = db[k].filter(x=>x.empId!==id);
   for(const k in db.payroll) delete db.payroll[k][id];
   for(const k in db.attendance) if(k.startsWith(id+"|")) delete db.attendance[k];
-  save(); go("employees"); toast("تم حذف الموظف", true);
+  save(); go("employees"); toast(L('تم حذف الموظف'), true);
 }
 
 document.addEventListener("click", async e => {
@@ -1434,7 +1881,7 @@ document.addEventListener("click", async e => {
     (sh.days[d.getDate()] ||= {})[kind] = nowHM();
     save(); render();
     const row = $(`[data-row="${CSS.escape(id)}"]`); flash(row, kind==="in" ? "var(--good)" : "var(--brand)"); pop(row?.querySelector(".btn")); pop(row?.querySelector(".info small"), [{opacity:0},{opacity:1}]);
-    return toast(kind==="in" ? `حضور ${empName(id)} ${nowHM()}` : `انصراف ${empName(id)} ${nowHM()}`, true);
+    return toast(kind==="in" ? `${L('حضور')} ${empName(id)} ${nowHM()}` : `${L('انصراف')} ${empName(id)} ${nowHM()}`, true);
   }
   if(ds.payEdit) return editPay(ds.payEdit);
   if(ds.slip){ if(state.tab === "profile"){ state.y = now().getFullYear(); state.m = now().getMonth()+1; } return showSlip(ds.slip); }
@@ -1451,6 +1898,20 @@ document.addEventListener("click", async e => {
   return handleAct(act, arg);
 });
 
+// اللغة والاتجاه: تُطبَّق قبل أول عرض. تبديل اللغة يحفظ التفضيل على الجهاز ويعيد تحميل الواجهة.
+function applyLang(){
+  const h = document.documentElement;
+  h.lang = LANG; h.dir = LANG === "en" ? "ltr" : "rtl";
+  if(LANG !== "en") return;
+  document.title = L('الرواتب والدوام');
+  document.querySelectorAll("#tabs button").forEach(b => { const t = [...b.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if(t) t.textContent = lbl(t.textContent.trim()); });
+  $("#hdrBack").setAttribute("aria-label", lbl(L('رجوع')));
+}
+function setLang(lang){
+  try{ localStorage.setItem("payroll-lang", lang); }catch(e){ return toast("Could not save the language setting"); }
+  keepUI(); location.reload();
+}
+applyLang();
 render();
 renderAlerts();
 dailySnapshot();
