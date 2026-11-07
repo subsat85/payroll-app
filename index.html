@@ -101,6 +101,8 @@ input[type=checkbox]:checked{background:var(--brand-fill) url("data:image/svg+xm
 .check{display:flex;align-items:center;gap:10px;color:var(--ink);font-size:var(--fs-sm);font-weight:500;min-height:var(--tap);cursor:pointer}
 .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
 .fields>.full{grid-column:1/-1}
+.al-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,104px) auto;gap:8px;align-items:center;margin-bottom:8px}
+.al-row input{margin-top:0}
 /* 24h time field */
 .tf{display:flex;align-items:center;gap:4px;margin-top:4px}
 .tf select{margin:0;flex:1;text-align:center;text-align-last:center;padding-left:12px;background-image:none;font-variant-numeric:tabular-nums;font-weight:600}
@@ -328,6 +330,19 @@ dialog[open]::backdrop{animation:bd-in .2s ease-out}
    تفضيل اللغة يُحفظ على الجهاز (payroll-lang) وليس داخل بيانات الرواتب، فلا يتغيّر تنسيق البيانات. */
 const LANG = (() => { try{ return localStorage.getItem("payroll-lang") === "en" ? "en" : "ar"; }catch(e){ return "ar"; } })();
 const EN = {
+"العلاوات": "Allowances",
+"العلاوات:": "Allowances:",
+"علاوة": "Allowance",
+"مجموع العلاوات": "Total allowances",
+"الإجمالي الشهري": "Monthly total",
+"لا تدخل في حساب الإضافي": "Not included in overtime",
+"المجموع": "Total",
+"اسم العلاوة": "Allowance name",
+"حذف العلاوة": "Delete allowance",
+"العلاوات تُضاف للصافي ولا تدخل في حساب الإضافي.": "Allowances are added to net pay and are not used to calculate overtime.",
+"{0} إضافة علاوة": "{0} Add allowance",
+"الراتب الأساسي الشهري": "Monthly base salary",
+"تفاصيل العلاوات": "Allowance details",
 " · تُخصم من الراتب": " · deducted from salary",
 " · منتهية": " · ended",
 " إذا أدخلت بيانات سابقاً في Safari فهي منفصلة عن هذا التطبيق — انسخها من هناك والصقها هنا.": " If you entered data in Safari before, it is separate from this app — copy it there and paste it here.",
@@ -969,6 +984,9 @@ function liveAtt(emp, y, m){
 }
 
 /* ========== حساب الراتب ========== */
+// علاوات الموظف الثابتة الشهرية [{id,name,amount}] — الموظفون القدامى بلا علاوات
+const allowancesOf = emp => Array.isArray(emp?.allowances) ? emp.allowances.filter(a => a && typeof a === "object") : [];
+const allowTotal = emp => allowancesOf(emp).reduce((s,a)=>s+num(a.amount),0);
 function calcPay(emp, y, m){
   const S = db.settings, MD = num(S.monthDays) || 30;
   const start = Date.UTC(y,m-1,1), end = Date.UTC(y,m-1,daysInMonth(y,m));
@@ -995,8 +1013,11 @@ function calcPay(emp, y, m){
   const otHours = manualOt + attHours, otPay = manualOtPay + attPay;
   const ss = base * num(S.ssPct) / 100;
   const deductions = absDed + unpaidDed + lateDed + adv + otherDed + ss;
+  // العلاوات الثابتة: خارج كل المعادلات أعلاه (الإضافي والخصومات من الأساسي فقط)، نسبية لأيام الاستحقاق مثل الأساسي
+  const allowList = allowancesOf(emp).map(a => ({name:a.name, amount: num(a.amount) / MD * days}));
+  const allowances = allowList.reduce((s,a)=>s+a.amount,0);
   return { days, base, absDays, lateHours, absDed, unpaidDays, unpaidDed, lateDed, adv, otHours, otPay, manualOt, manualOtPay, attHours, attPay, live,
-           bonus, otherDed, ss, deductions, net: base - deductions + otPay + bonus,
+           bonus, otherDed, ss, deductions, allowances, allowList, net: base - deductions + otPay + bonus + allowances,
            delivered: !!rec.delivered, deliveredDate: rec.deliveredDate || "", note: rec.note || "" };
 }
 function empsForMonth(y,m){
@@ -1114,11 +1135,12 @@ function payCard(e, p){
       ${p.delivered?`<span class="tag good">${L('سُلِّم')}</span>`:""}</div>
     <dl>
       <dt>${L('الراتب الأساسي')}</dt><dd>${money(p.base)}</dd>
+      ${line(L('العلاوات'),p.allowances,"pos")}
       ${line(`${L('غياب {0} يوم', nb(fix(p.absDays)))}`,p.absDed)}${line(`${L('بدون راتب {0} يوم', p.unpaidDays)}`,p.unpaidDed)}${line(`${L('تأخير {0} ساعة', nb(fix(p.lateHours)))}`,p.lateDed)}
       ${line(L('السلف'),p.adv)}${line(L('خصومات أخرى'),p.otherDed)}${line(L('الضمان الاجتماعي'),p.ss)}
       ${p.live?`<dt>${L('الدوام {0} ساعة', hm(p.live.mins))}</dt><dd class="${sign(p.attPay)}">${money(p.attPay)}</dd>`:""}
       ${line(`${L('إضافي {0} ساعة', nb(fix(p.manualOt)))}`,p.manualOtPay,sign(p.manualOtPay))}
-      ${line(L('مكافآت وعلاوات'),p.bonus,"pos")}
+      ${line(L('مكافآت'),p.bonus,"pos")}
     </dl>
     <div class="net"><span>${L('الصافي')}</span><span class="${p.net<0?"neg":""}">${money(p.net)}</span></div>
     <div class="foot">
@@ -1135,7 +1157,7 @@ views.payroll = () => {
   return `<div class="ctx">${monthPicker()}</div>
   ${!rows.length ? emptyState("wallet", `${L('لا يوجد موظفون على رأس عملهم في')} ${MONTHS[m-1]} ${y}.`) : `
   <div class="hero"><div class="label">${L('صافي الرواتب')} · ${MONTHS[m-1]}</div><div class="value">${money(tot("net"))}</div>
-    <div class="strip">${kv(L('الأساسي'), money(tot("base")))}${kv(L('الخصومات'), money(tot("deductions")), tot("deductions")?"neg":"")}${kv(L('إضافي ومكافآت'), money(extra), sign(extra))}${kv(L('تم التسليم'), nb(`${rows.filter(r=>r.p.delivered).length} / ${rows.length}`))}</div></div>
+    <div class="strip">${kv(L('الأساسي'), money(tot("base")))}${tot("allowances")?kv(L('العلاوات'), money(tot("allowances"))):""}${kv(L('الخصومات'), money(tot("deductions")), tot("deductions")?"neg":"")}${kv(L('إضافي ومكافآت'), money(extra), sign(extra))}${kv(L('تم التسليم'), nb(`${rows.filter(r=>r.p.delivered).length} / ${rows.length}`))}</div></div>
   <div class="cards">${rows.map(({e,p}) => payCard(e,p)).join("")}</div>`}`;
 };
 
@@ -1163,7 +1185,8 @@ views.profile = () => {
       ${e.endDate?`<span class="tag bad">${esc(lbl(e.endReason)||L('منتهية'))} ${esc(e.endDate)}</span>`:`<span class="tag good">${L('نشط')}</span>`}</div></div>
   <div class="group pad"><dl style="margin:0">
       <dt>${L('تاريخ التوظيف')}</dt><dd>${nb(esc(e.hire||""))} ${years>0?`<span class="muted">· ${L('{0} سنة', nb(years.toFixed(1)))}</span>`:""}</dd>
-      <dt>${L('الراتب الشهري')}</dt><dd>${money(num(e.salary))}</dd>
+      <dt>${L('الراتب الأساسي')}</dt><dd>${money(num(e.salary))}</dd>
+      ${allowancesOf(e).length?`<dt>${L('مجموع العلاوات')}</dt><dd>${money(allowTotal(e))}</dd><dt>${L('الإجمالي الشهري')}</dt><dd><b>${money(num(e.salary)+allowTotal(e))}</b></dd>`:""}
       <dt>${L('ساعات العمل اليومية')}</dt><dd>${nb(esc(e.hours))}</dd>
       <dt>${L('سعر ساعة الإضافي')}</dt><dd>${money(otRateFor(e))}</dd>
       ${e.phone?`<dt>${L('الهاتف')}</dt><dd><a href="tel:${esc(e.phone)}" style="color:var(--brand)">${nb(esc(e.phone))}</a></dd>`:""}
@@ -1177,6 +1200,8 @@ views.profile = () => {
     <button class="tile" data-act="add-leaves:${esc(e.id)}">${L('{0}إجازة', ic("leave"))}</button>
     <button class="tile" data-act="add-advances:${esc(e.id)}">${L('{0}سلفة', ic("cash"))}</button>
   </div>
+  <div class="section-t"><h2>${L('العلاوات')}</h2><button class="btn sm" data-act="edit-allow:${esc(e.id)}">${L('{0} تعديل', ic("pencil","sm"))}</button></div>
+  <div class="group">${allowancesOf(e).length?allowancesOf(e).map(a=>`<div class="row"><div class="info"><b>${esc(a.name)}</b></div><span class="end">${money(num(a.amount))}</span></div>`).join("")+`<div class="row"><div class="info"><b>${L('المجموع')}</b><small>${L('لا تدخل في حساب الإضافي')}</small></div><span class="end"><b>${money(allowTotal(e))}</b></span></div>`:`<div class="empty">${L('لا يوجد')}</div>`}</div>
   <div class="section-t"><h2>${L('آخر الإجازات')}</h2></div>
   <div class="group">${lv.length?lv.map(l=>`<button class="row row-btn" data-edit="leaves:${esc(l.id)}"><div class="info"><b>${esc(lbl(l.type))}</b><small>${nb(esc(l.from))}${l.to&&l.to!==l.from?" – "+nb(esc(l.to)):""}</small></div><span class="end">${L('{0} يوم', leaveDays(e.id,parseDate(l.from),parseDate(l.to||l.from)))}</span></button>`).join(""):`<div class="empty">${L('لا يوجد')}</div>`}</div>
   <div class="section-t"><h2>${L('آخر السلف')}</h2></div>
@@ -1227,7 +1252,7 @@ views.summary = () => {
   if(!db.employees.length) return needEmp();
   const y = state.y;
   const rows = db.employees.map(e => {
-    const s = {base:0,absDays:0,lateHours:0,adv:0,otHours:0,otPay:0,bonus:0,deductions:0,net:0};
+    const s = {base:0,allowances:0,absDays:0,lateHours:0,adv:0,otHours:0,otPay:0,bonus:0,deductions:0,net:0};
     for(let m=1;m<=12;m++){ const p = calcPay(e,y,m); for(const k in s) s[k]+=p[k]; }
     return {e,s};
   }).filter(r => r.s.base);
@@ -1235,10 +1260,10 @@ views.summary = () => {
   return `<div class="ctx">${monthPicker(true)}</div>
   ${!rows.length ? emptyState("chart", `${L('لا توجد رواتب في')} ${y}.`) : `
   <div class="hero"><div class="label">${L('صافي رواتب')} ${y}</div><div class="value">${money(T("net"))}</div>
-    <div class="strip">${kv(L('الأساسي'), money(T("base")))}${kv(L('الخصومات'), money(T("deductions")), T("deductions")?"neg":"")}${kv(L('السلف'), money(T("adv")))}${kv(L('إضافي'), money(T("otPay")), sign(T("otPay")))}${kv(L('مكافآت'), money(T("bonus")))}</div></div>
-  <div class="group tbl"><table><thead><tr><th>${L('الموظف')}</th><th>${L('الأساسي')}</th><th>${L('غياب')}</th><th>${L('تأخير')}</th><th>${L('السلف')}</th><th>${L('إضافي (س)')}</th><th>${L('أجر إضافي')}</th><th>${L('مكافآت')}</th><th>${L('الخصومات')}</th><th>${L('الصافي')}</th></tr></thead><tbody>
-  ${rows.map(({e,s})=>`<tr><td>${esc(e.name)}</td><td>${money(s.base)}</td><td>${nb(fix(s.absDays))}</td><td>${nb(fix(s.lateHours))}</td><td>${money(s.adv)}</td><td>${nb(fix(s.otHours))}</td><td class="${sign(s.otPay)}">${money(s.otPay)}</td><td>${money(s.bonus)}</td><td>${money(s.deductions)}</td><td><b>${money(s.net)}</b></td></tr>`).join("")}
-  </tbody><tfoot><tr><td>${L('الإجمالي')}</td><td>${money(T("base"))}</td><td>${nb(fix(T("absDays")))}</td><td>${nb(fix(T("lateHours")))}</td><td>${money(T("adv"))}</td><td>${nb(fix(T("otHours")))}</td><td>${money(T("otPay"))}</td><td>${money(T("bonus"))}</td><td>${money(T("deductions"))}</td><td>${money(T("net"))}</td></tr></tfoot></table></div>`}`;
+    <div class="strip">${kv(L('الأساسي'), money(T("base")))}${T("allowances")?kv(L('العلاوات'), money(T("allowances"))):""}${kv(L('الخصومات'), money(T("deductions")), T("deductions")?"neg":"")}${kv(L('السلف'), money(T("adv")))}${kv(L('إضافي'), money(T("otPay")), sign(T("otPay")))}${kv(L('مكافآت'), money(T("bonus")))}</div></div>
+  <div class="group tbl"><table><thead><tr><th>${L('الموظف')}</th><th>${L('الأساسي')}</th><th>${L('العلاوات')}</th><th>${L('غياب')}</th><th>${L('تأخير')}</th><th>${L('السلف')}</th><th>${L('إضافي (س)')}</th><th>${L('أجر إضافي')}</th><th>${L('مكافآت')}</th><th>${L('الخصومات')}</th><th>${L('الصافي')}</th></tr></thead><tbody>
+  ${rows.map(({e,s})=>`<tr><td>${esc(e.name)}</td><td>${money(s.base)}</td><td>${money(s.allowances)}</td><td>${nb(fix(s.absDays))}</td><td>${nb(fix(s.lateHours))}</td><td>${money(s.adv)}</td><td>${nb(fix(s.otHours))}</td><td class="${sign(s.otPay)}">${money(s.otPay)}</td><td>${money(s.bonus)}</td><td>${money(s.deductions)}</td><td><b>${money(s.net)}</b></td></tr>`).join("")}
+  </tbody><tfoot><tr><td>${L('الإجمالي')}</td><td>${money(T("base"))}</td><td>${money(T("allowances"))}</td><td>${nb(fix(T("absDays")))}</td><td>${nb(fix(T("lateHours")))}</td><td>${money(T("adv"))}</td><td>${nb(fix(T("otHours")))}</td><td>${money(T("otPay"))}</td><td>${money(T("bonus"))}</td><td>${money(T("deductions"))}</td><td>${money(T("net"))}</td></tr></tfoot></table></div>`}`;
 };
 
 views.settings = () => {
@@ -1455,7 +1480,7 @@ function editEmployee(id){
     <label>${L('اسم الموظف')}<input name="name" required value="${esc(e.name||"")}" autocomplete="off"></label>
     <div class="fields"><label>${L('المسمى الوظيفي')}<input name="title" value="${esc(e.title||"")}"></label>
       <label>${L('تاريخ التوظيف')}<input type="date" name="hire" required value="${esc(e.hire||"")}"></label>
-      <label>${L('الراتب الشهري')}<input inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
+      <label>${L('الراتب الأساسي')}<input inputmode="decimal" name="salary" required value="${esc(e.salary??"")}"></label>
       <label>${L('ساعات العمل اليومية')}<input inputmode="decimal" name="hours" required value="${esc(e.hours??8)}"></label>
       <label>${L('الهاتف')}<input type="tel" name="phone" value="${esc(e.phone||"")}"></label>
       <label>${L('الرقم الوطني')}<input inputmode="numeric" name="nid" value="${esc(e.nid||"")}"></label></div>
@@ -1469,6 +1494,45 @@ function editEmployee(id){
     if(id) Object.assign(empById(id), d); else { const n = {id:uid(), ...d}; db.employees.push(n); if(!state.attEmp) state.attEmp = n.id; }
     save(); render(); toast(L('تم الحفظ'));
   });
+}
+
+// العلاوات الثابتة للموظف: إضافة / تعديل / حذف. لا تؤثر على الراتب الأساسي ولا على سعر الإضافي.
+function editAllowances(empId){
+  const e = empById(empId); if(!e) return;
+  const row = (a={}) => `<div class="al-row" data-id="${esc(a.id||"")}">
+      <input data-al="name" value="${esc(a.name||"")}" placeholder="${L('اسم العلاوة')}" aria-label="${L('اسم العلاوة')}" autocomplete="off">
+      <input data-al="amount" inputmode="decimal" value="${esc(a.amount??"")}" placeholder="${L('القيمة')}" aria-label="${L('القيمة')}">
+      <button type="button" class="btn danger-ghost" data-al-del aria-label="${L('حذف العلاوة')}">${ic("trash")}</button></div>`;
+  const list = allowancesOf(e);
+  const f = openDialog(`<h3>${L('العلاوات')} — ${esc(e.name)}</h3>
+    <p class="note" style="margin-top:0">${L('الراتب الأساسي')}: ${money(num(e.salary))} · ${L('العلاوات تُضاف للصافي ولا تدخل في حساب الإضافي.')}</p>
+    <div id="alRows">${(list.length ? list : [{}]).map(row).join("")}</div>
+    <button type="button" class="btn block" id="alAdd">${L('{0} إضافة علاوة', ic("plus","sm"))}</button>
+    <div class="live" id="alSum" style="margin-top:12px"></div>`,
+  () => {
+    const rows = [...f.querySelectorAll(".al-row")], out = [];
+    f.querySelectorAll(".invalid").forEach(i => i.classList.remove("invalid"));
+    for(const r of rows){
+      const n = r.querySelector('[data-al="name"]'), v = r.querySelector('[data-al="amount"]');
+      const name = n.value.trim(), amt = toLatin(v.value).trim();
+      if(!name && !amt) continue;
+      if(!name){ n.classList.add("invalid"); n.focus(); toast(L('أكمل: ') + L('اسم العلاوة')); return false; }
+      if(!isFinite(parseFloat(amt))){ v.classList.add("invalid"); v.focus(); toast(L('أكمل: ') + L('القيمة')); return false; }
+      out.push({id: SAFE_ID.test(r.dataset.id) ? r.dataset.id : uid(), name, amount: num(amt)});
+    }
+    snapshot();
+    e.allowances = out;
+    save(); render(); toast(L('تم الحفظ'));
+  });
+  const sum = () => { const t = [...f.querySelectorAll('[data-al="amount"]')].reduce((s,i)=>s+num(i.value),0);
+    $("#alSum").innerHTML = `${L('مجموع العلاوات')}: <b>${money(t)}</b> · ${L('الإجمالي الشهري')}: <b>${money(num(e.salary)+t)}</b>`; };
+  f.addEventListener("input", sum);
+  f.addEventListener("click", ev => {
+    const del = ev.target.closest?.("[data-al-del]");
+    if(del){ const box = $("#alRows"); del.closest(".al-row").remove(); if(!box.children.length) box.insertAdjacentHTML("beforeend", row()); sum(); return; }
+    if(ev.target.closest?.("#alAdd")){ $("#alRows").insertAdjacentHTML("beforeend", row()); $("#alRows").lastElementChild.querySelector("input").focus(); }
+  });
+  sum();
 }
 
 function editRecord(kind, id, empId){
@@ -1518,7 +1582,7 @@ function editPay(empId){
   openDialog(`<h3>${esc(e.name)} — ${MONTHS[m-1]} ${y}</h3>
     <div class="fields"><label>${L('أيام غياب')}<input inputmode="decimal" name="absDays" value="${esc(rec.absDays||"")}"></label>
       <label>${L('ساعات تأخير')}<input inputmode="decimal" name="lateHours" value="${esc(rec.lateHours||"")}"></label>
-      <label>${L('مكافآت / علاوات')}<input inputmode="decimal" name="bonus" value="${esc(rec.bonus||"")}"></label>
+      <label>${L('مكافآت')}<input inputmode="decimal" name="bonus" value="${esc(rec.bonus||"")}"></label>
       <label>${L('خصومات أخرى')}<input inputmode="decimal" name="otherDed" value="${esc(rec.otherDed||"")}"></label>
       <label class="full">${L('ملاحظة')}<input name="note" value="${esc(rec.note||"")}"></label></div>
     <p class="note">${L('السلف والإجازات بدون راتب وساعات الدوام تُحسب تلقائياً من سجلاتها.')}</p>`,
@@ -1612,7 +1676,7 @@ function slipHTML(e, y, m){
   return `<div class="slip">
     <h2>${L('قسيمة راتب')}</h2><div class="subt">${esc(S.company||"")}${S.company?" · ":""}${MONTHS[m-1]} ${y}</div>
     <dl><dt>${L('الموظف')}</dt><dd>${esc(e.name)}</dd><dt>${L('المسمى')}</dt><dd>${esc(e.title||"—")}</dd><dt>${L('أيام الاستحقاق')}</dt><dd>${p.days}</dd></dl>
-    <h4>${L('المستحقات')}</h4><dl>${line(L('الراتب الأساسي'),p.base)}${p.otPay>0?line(`${L('إضافي ({0} س)', hmText(p.otHours*60))}`,p.otPay):""}${p.bonus?line(L('مكافآت وعلاوات'),p.bonus):""}</dl>
+    <h4>${L('المستحقات')}</h4><dl>${line(L('الراتب الأساسي'),p.base)}${p.allowList.filter(a=>a.amount).map(a=>line(`${L('علاوة')}: ${esc(a.name)}`,a.amount)).join("")}${p.allowList.length>1&&p.allowances?line(L('مجموع العلاوات'),p.allowances):""}${p.otPay>0?line(`${L('إضافي ({0} س)', hmText(p.otHours*60))}`,p.otPay):""}${p.bonus?line(L('مكافآت'),p.bonus):""}</dl>
     <h4>${L('الاستقطاعات')}</h4><dl>${ded || `<dt>${L('لا يوجد')}</dt><dd></dd>`}</dl>
     <div class="net"><span>${L('صافي الراتب')}</span><span>${money(p.net)}</span></div>
     ${p.note?`<p class="note">${esc(p.note)}</p>`:""}
@@ -1622,6 +1686,7 @@ function slipHTML(e, y, m){
 function slipText(e,y,m){
   const p = calcPay(e,y,m), S = db.settings, lines = [];
   lines.push(`${L('قسيمة راتب')} ${MONTHS[m-1]} ${y}${S.company?" — "+S.company:""}`, `${L('الموظف:')} ${e.name}`, `${L('الراتب الأساسي:')} ${moneyText(p.base)}`);
+  if(p.allowances) lines.push(`${L('العلاوات:')} ${moneyText(p.allowances)}`);
   if(p.otPay) lines.push(`${L('الإضافي:')} ${moneyText(p.otPay)}`);
   if(p.bonus) lines.push(`${L('مكافآت:')} ${moneyText(p.bonus)}`);
   if(p.deductions) lines.push(`${L('الخصومات:')} ${moneyText(p.deductions)}${p.adv?` ${L('(منها سلف')} ${moneyText(p.adv)})`:""}`);
@@ -1712,7 +1777,7 @@ function loadXLSX(){
   if(window.XLSX) return Promise.resolve();
   return xlsxLoading ||= new Promise((ok,fail)=>{ const s=document.createElement("script"); s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload=ok; s.onerror=()=>{xlsxLoading=null;fail();}; document.head.appendChild(s); });
 }
-const payRow = (e,y,m,p) => ({[L('الموظف')]:e.name,[L('الشهر')]:MONTHS[m-1],[L('السنة')]:y,[L('الراتب الشهري')]:num(e.salary),[L('أيام الاستحقاق')]:p.days,[L('الراتب الأساسي')]:fix(p.base),[L('أيام غياب')]:p.absDays,[L('خصم غياب')]:fix(p.absDed),[L('إجازة بدون راتب (يوم)')]:p.unpaidDays,[L('خصمها')]:fix(p.unpaidDed),[L('ساعات تأخير')]:p.lateHours,[L('خصم تأخير')]:fix(p.lateDed),[L('سلفة')]:fix(p.adv),[L('خصومات أخرى')]:fix(p.otherDed),[L('الضمان')]:fix(p.ss),[L('ساعات الدوام (صافي)')]:fix(p.attHours),[L('أجر الدوام')]:fix(p.attPay),[L('ساعات إضافي يدوية')]:fix(p.manualOt),[L('أجر الإضافي اليدوي')]:fix(p.manualOtPay),[L('إجمالي أجر الإضافي')]:fix(p.otPay),[L('مكافآت')]:fix(p.bonus),[L('إجمالي الخصومات')]:fix(p.deductions),[L('الصافي')]:fix(p.net),[L('تم التسليم')]:p.delivered?"✓":"",[L('تاريخ التسليم')]:p.deliveredDate,[L('ملاحظة')]:p.note});
+const payRow = (e,y,m,p) => ({[L('الموظف')]:e.name,[L('الشهر')]:MONTHS[m-1],[L('السنة')]:y,[L('الراتب الأساسي الشهري')]:num(e.salary),[L('أيام الاستحقاق')]:p.days,[L('الراتب الأساسي')]:fix(p.base),[L('العلاوات')]:fix(p.allowances),[L('أيام غياب')]:p.absDays,[L('خصم غياب')]:fix(p.absDed),[L('إجازة بدون راتب (يوم)')]:p.unpaidDays,[L('خصمها')]:fix(p.unpaidDed),[L('ساعات تأخير')]:p.lateHours,[L('خصم تأخير')]:fix(p.lateDed),[L('سلفة')]:fix(p.adv),[L('خصومات أخرى')]:fix(p.otherDed),[L('الضمان')]:fix(p.ss),[L('ساعات الدوام (صافي)')]:fix(p.attHours),[L('أجر الدوام')]:fix(p.attPay),[L('ساعات إضافي يدوية')]:fix(p.manualOt),[L('أجر الإضافي اليدوي')]:fix(p.manualOtPay),[L('إجمالي أجر الإضافي')]:fix(p.otPay),[L('مكافآت')]:fix(p.bonus),[L('إجمالي الخصومات')]:fix(p.deductions),[L('الصافي')]:fix(p.net),[L('تم التسليم')]:p.delivered?"✓":"",[L('تاريخ التسليم')]:p.deliveredDate,[L('ملاحظة')]:p.note});
 async function exportXlsx(kind){
   toast(L('جارٍ التجهيز…'));
   try{ await loadXLSX(); }catch(e){ return toast(L('تعذّر تحميل مكتبة Excel — تحقق من الاتصال')); }
@@ -1724,7 +1789,7 @@ async function exportXlsx(kind){
   }else{
     const yearOf = r => +(r.date||r.from||"").slice(0,4);
     const years = kind==="year" ? [y] : [...new Set([...db.advances,...db.overtime,...db.leaves].map(yearOf).concat(Object.keys(db.attendance).map(k=>+k.split("|")[1]?.slice(0,4))).filter(Boolean).concat(y))].sort();
-    add(db.employees.map((e,i)=>({[L('رقم')]:i+1,[L('اسم الموظف')]:e.name,[L('المسمى الوظيفي')]:e.title||"",[L('تاريخ التوظيف')]:e.hire,[L('الراتب الشهري')]:num(e.salary),[L('ساعات العمل اليومية')]:num(e.hours),[L('الهاتف')]:e.phone||"",[L('الرقم الوطني')]:e.nid||"",[L('تاريخ انتهاء الخدمة')]:e.endDate||"",[L('سبب الإنهاء')]:e.endDate?lbl(e.endReason||""):L('نشط')})), L('الموظفين'));
+    add(db.employees.map((e,i)=>({[L('رقم')]:i+1,[L('اسم الموظف')]:e.name,[L('المسمى الوظيفي')]:e.title||"",[L('تاريخ التوظيف')]:e.hire,[L('الراتب الأساسي')]:num(e.salary),[L('العلاوات')]:allowTotal(e),[L('تفاصيل العلاوات')]:allowancesOf(e).map(x=>`${x.name}: ${num(x.amount)}`).join(" · "),[L('ساعات العمل اليومية')]:num(e.hours),[L('الهاتف')]:e.phone||"",[L('الرقم الوطني')]:e.nid||"",[L('تاريخ انتهاء الخدمة')]:e.endDate||"",[L('سبب الإنهاء')]:e.endDate?lbl(e.endReason||""):L('نشط')})), L('الموظفين'));
     const pr = []; for(const yy of years) for(let mm=1;mm<=12;mm++) for(const e of empsForMonth(yy,mm)) pr.push(payRow(e,yy,mm,calcPay(e,yy,mm)));
     add(pr, L('الرواتب'));
     const inYears = r => years.includes(yearOf(r));
@@ -1802,6 +1867,7 @@ async function handleAct(act, arg){
     case "add-advances": return editRecord("advances", null, arg);
     case "add-overtime": return editRecord("overtime", null, arg);
     case "add-leaves": return editLeave(null, arg);
+    case "edit-allow": return editAllowances(arg);
     case "att-of": state.attEmp = arg; state.y = now().getFullYear(); state.m = now().getMonth()+1; return go("attendance");
     case "pick-emp": return pickEmployee();
     case "att-settings": return attSettings();

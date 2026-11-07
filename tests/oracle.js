@@ -36,6 +36,9 @@ function pay(db, emp, y, m){
   const base = dayR*days, abs = dayR*(+rec.absDays||0), unpaid = dayR*leaveIn(db.leaves||[], emp.id, s, e, 'بدون راتب');
   const late = hourR*(+rec.lateHours||0), otPay = hourR*ot*mult + (live?live.pay:0), ss = base*(+S.ssPct)/100;
   const ded = abs+unpaid+late+adv+(+rec.otherDed||0)+ss;
-  return {days, base, ded, otPay, net: base-ded+otPay+(+rec.bonus||0)};
+  // Fixed monthly allowances (added after the spreadsheets): prorated by entitlement days like the base,
+  // added to net only — never part of the hourly/overtime rate, deductions or social security.
+  const allow = (Array.isArray(emp.allowances) ? emp.allowances : []).reduce((x,a)=>x+(+a.amount||0),0) / MD * days;
+  return {days, base, ded, otPay, allow, net: base-ded+otPay+(+rec.bonus||0)+allow};
 }
 module.exports = {pay, attMonth, leaveIn, U};

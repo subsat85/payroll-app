@@ -4,9 +4,9 @@
 // Some suites also run a second time with prefers-reduced-motion (RM=1), since sheets/toasts behave differently.
 const { spawnSync } = require('child_process');
 const path = require('path');
-const SUITES = ['calculations', 'safety', 'rtl', 'mobile', 'animation', 'security', 'schema', 'i18n'];
+const SUITES = ['calculations', 'allowances', 'safety', 'rtl', 'mobile', 'animation', 'security', 'schema', 'i18n'];
 const RM_TOO = new Set(['safety', 'mobile']);
-const EN_TOO = new Set(['security', 'mobile']);   // also run with the English (LTR) UI
+const EN_TOO = new Set(['security', 'mobile', 'allowances']);   // also run with the English (LTR) UI
 const only = process.argv.slice(2);
 let pass = 0, fail = 0; const failed = [];
 for(const s of SUITES.filter(s => !only.length || only.includes(s))){
