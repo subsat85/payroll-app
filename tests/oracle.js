@@ -35,10 +35,18 @@ function pay(db, emp, y, m){
   const adv = db.advances.filter(a=>a.empId===emp.id && a.date.startsWith(pre)).reduce((x,a)=>x+ +a.amount,0);
   const base = dayR*days, abs = dayR*(+rec.absDays||0), unpaid = dayR*leaveIn(db.leaves||[], emp.id, s, e, 'بدون راتب');
   const late = hourR*(+rec.lateHours||0), otPay = hourR*ot*mult + (live?live.pay:0), ss = base*(+S.ssPct)/100;
-  const ded = abs+unpaid+late+adv+(+rec.otherDed||0)+ss;
+  // Monthly days off (from 2026-11): 4 free days; each extra day = 8 h, priced like an absence day (base ÷ MD).
+  // A day off = marked holiday, not an official holiday, nobody clocked in/out, not inside any recorded leave.
+  let offUsed = 0;
+  for(let d=1; d<=dim(y,m); d++){
+    const r = sheet?.days?.[d], ds = `${pre}-${String(d).padStart(2,'0')}`;
+    if(r && r.holiday && !r.pub && !r.in && !r.out && !(db.leaves||[]).some(l=>l.empId===emp.id && l.from<=ds && (l.to||l.from)>=ds)) offUsed++;
+  }
+  const offExcess = pre >= '2026-11' ? Math.max(offUsed-4, 0) : 0, offDed = days ? dayR*offExcess : 0;
+  const ded = abs+unpaid+late+adv+(+rec.otherDed||0)+ss+offDed;
   // Fixed monthly allowances (added after the spreadsheets): prorated by entitlement days like the base,
   // added to net only — never part of the hourly/overtime rate, deductions or social security.
   const allow = (Array.isArray(emp.allowances) ? emp.allowances : []).reduce((x,a)=>x+(+a.amount||0),0) / MD * days;
-  return {days, base, ded, otPay, allow, net: base-ded+otPay+(+rec.bonus||0)+allow};
+  return {days, base, ded, otPay, allow, offUsed, offExcess, offHours: offExcess*8, offDed, net: base-ded+otPay+(+rec.bonus||0)+allow};
 }
 module.exports = {pay, attMonth, leaveIn, U};
